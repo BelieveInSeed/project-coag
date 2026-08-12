@@ -35,8 +35,9 @@ const elements = {
     factorsContainer: document.getElementById('factors-container')
 };
 
-// 阶段说明文案字典
+// 阶段说明文案字典 (索引 0~5 对应阶段 0~5)
 const stageDescriptions = [
+    "请点击下方“下一步”开始观察止血过程。",
     "血管内皮损伤，暴露出内皮下的胶原蛋白 (Collagen)。",
     "初级止血：vWF 结合至胶原，血小板通过 GP Ib-IX-V 受体粘附并活化，形成初期血小板栓子。",
     "起始阶段 (Initiation)：组织因子 (TF) 与 FVIIa 结合，微量活化 FIX 与 FX，产生初始的微量凝血酶 (Thrombin)。",
@@ -56,8 +57,53 @@ function changeStage(direction) {
     let nextStage = state.stage + direction;
     if (nextStage >= 0 && nextStage <= state.maxStage) {
         state.stage = nextStage;
+        if (direction < 0) {
+            handleBackwardStep(nextStage);
+        }
         updateUI();
-        playAnimationForCurrentStage();
+        if (direction > 0) {
+            playAnimationForCurrentStage();
+        }
+    }
+}
+
+function handleBackwardStep(targetStage) {
+    gsap.killTweensOf("*");
+
+    // 清除在 targetStage 之后产生的所有因子/物体
+    const factorEls = elements.factorsContainer.querySelectorAll('[data-created-stage]');
+    factorEls.forEach(el => {
+        if (parseInt(el.dataset.createdStage) > targetStage) {
+            el.remove();
+        }
+    });
+
+    // 根据目标阶段恢复已有物体的状态与位置
+    if (targetStage < 1) {
+        gsap.set(elements.collagen, { opacity: 0 });
+    } else {
+        gsap.set(elements.collagen, { opacity: 1 });
+    }
+
+    if (targetStage < 4) {
+        // 重置血小板高亮和缩放
+        const platelet = document.querySelector('.platelet');
+        if (platelet) {
+            gsap.set(platelet, { filter: 'none', scale: 1 });
+        }
+        // 若回到阶段 3，将微量凝血酶（FIIa）移回阶段 3 的最终位置
+        if (targetStage === 3) {
+            const fii = document.querySelector('.f-ii');
+            if (fii && parseInt(fii.dataset.createdStage) === 3) {
+                gsap.set(fii, {
+                    x: window.innerWidth * 0.3,
+                    y: window.innerHeight - 240,
+                    textContent: 'FIIa\n(微量)',
+                    backgroundColor: '#27ae60',
+                    scale: 0.8
+                });
+            }
+        }
     }
 }
 
@@ -66,9 +112,11 @@ function updateUI() {
     elements.btnPrev.disabled = state.stage === 0;
     elements.btnNext.disabled = state.stage === state.maxStage;
 
-    // 更新时间轴高亮
-    elements.steps.forEach(step => step.classList.remove('active'));
-    elements.steps[state.stage].classList.add('active');
+    // 更新时间轴高亮：根据 data-step 匹配当前 stage
+    elements.steps.forEach(step => {
+        const stepNum = parseInt(step.dataset.step);
+        step.classList.toggle('active', stepNum === state.stage);
+    });
 
     // 更新说明文案，隐藏警告
     elements.mechanismText.innerText = stageDescriptions[state.stage];
@@ -97,14 +145,12 @@ function playAnimationForCurrentStage() {
             triggerPathologyAlert("初级止血失败：缺乏 vWF (血管性血友病)，血小板无法有效粘附至暴露的胶原。");
             return; // 动画中止
         }
-        // 正常初级止血动画伪代码：生成 vWF 和 血小板，移动至胶原处
         createFactorElement('f-vwf', 'vWF', { x: 50, y: 100 });
         createFactorElement('platelet', 'Platelet', { x: 100, y: 50 });
         // GSAP 将它们移动到底部的胶原上
         tl.to('.f-vwf', { y: window.innerHeight - 240, x: window.innerWidth * 0.4 - 30, duration: 1 })
             .to('.platelet', { y: window.innerHeight - 350, x: window.innerWidth * 0.4, duration: 1 }, "-=0.5");
     }
-    // ...（接上一阶段的 playAnimationForCurrentStage 函数）...
 
     else if (state.stage === 3) {
         // --- 3: 起始阶段 (Initiation) ---
@@ -163,11 +209,10 @@ function playAnimationForCurrentStage() {
         }
 
         const platelet = document.querySelector('.platelet');
-        const pX = gsap.getProperty(platelet, "x");
-        const pY = gsap.getProperty(platelet, "y");
+        const pX = platelet ? gsap.getProperty(platelet, "x") : window.innerWidth * 0.4;
+        const pY = platelet ? gsap.getProperty(platelet, "y") : window.innerHeight - 350;
 
         // 1. 组装 Tenase (FIXa + FVIIIa) 和 Prothrombinase (FXa + FVa)
-        // 为简化视觉，这里直接演示复合体的效能
         const prothrombin = createFactorElement('f-ii', 'FII', { x: pX + 100, y: 50 });
 
         tl.to(prothrombin, { x: pX, y: pY - 80, duration: 1 })
@@ -202,6 +247,8 @@ function triggerThrombinBurst(x, y) {
 // 形成纤维蛋白网特效
 function createFibrinMesh(x, y) {
     const meshContainer = document.createElement('div');
+    meshContainer.className = 'fibrin-mesh-container';
+    meshContainer.dataset.createdStage = state.stage; // 记录创建时的阶段
     meshContainer.style.position = 'absolute';
     meshContainer.style.left = (x - 60) + 'px';
     meshContainer.style.top = (y - 40) + 'px';
@@ -227,11 +274,13 @@ function createFibrinMesh(x, y) {
         gsap.to(thread, { opacity: 1, duration: 0.5, delay: i * 0.05 });
     }
 }
+
 // 辅助函数：在舞台上创建 3D 因子元素
 function createFactorElement(className, text, initialPos) {
     const el = document.createElement('div');
     el.className = `factor ${className}`;
     el.innerText = text;
+    el.dataset.createdStage = state.stage; // 记录创建时的阶段
     // 初始位置设置
     gsap.set(el, { x: initialPos.x, y: initialPos.y });
     elements.factorsContainer.appendChild(el);
@@ -244,3 +293,6 @@ function triggerPathologyAlert(message) {
     elements.alertBox.style.display = 'block';
     elements.mechanismText.innerText = "生理过程已中断。";
 }
+
+// 初始化 UI
+updateUI();

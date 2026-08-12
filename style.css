@@ -94,6 +94,21 @@ select {
     /* 初始隐藏，损伤后显现 */
 }
 
+.factor {
+    position: absolute;
+    width: 100px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 22px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 1px black;
+    box-shadow: inset -3px -3px 6px rgba(0, 0, 0, 0.4), 2px 2px 5px rgba(0, 0, 0, 0.5);
+}
+
 /* 伪 3D 凝血因子与血小板 (通用类) */
 .platelet {
     position: absolute;
@@ -108,21 +123,6 @@ select {
 /* 活化后的血小板（带伪足，可通过更换 SVG 或 clip-path 实现，这里用样式示意） */
 .platelet.activated {
     filter: drop-shadow(0 0 8px yellow);
-}
-
-.factor {
-    position: absolute;
-    width: 100px;
-    height: 56px;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 22px;
-    font-weight: bold;
-    color: white;
-    text-shadow: 1px 1px 1px black;
-    box-shadow: inset -3px -3px 6px rgba(0, 0, 0, 0.4), 2px 2px 5px rgba(0, 0, 0, 0.5);
 }
 
 /* 各因子专属配色 */
