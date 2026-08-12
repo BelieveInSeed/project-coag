@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>兽医止血生理学互动模拟器</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+</head>
+<body>
+    <div class="simulator-container">
+        <aside class="control-panel">
+            <h2>临床状态设定</h2>
+            <select id="condition-selector">
+                <option value="normal">正常生理 (Normal)</option>
+                <option value="vwd">血管性血友病 (vWD)</option>
+                <option value="hemophilia_a">血友病 A (Hemophilia A)</option>
+                <option value="vit_k">维生素K拮抗剂中毒</option>
+            </select>
+            
+            <div id="info-card" class="info-card">
+                <h3>当前机制</h3>
+                <p id="mechanism-text">请点击下方“下一步”开始观察止血过程。</p>
+            </div>
+            
+            <div id="alert-box" class="alert-box hidden"></div>
+        </aside>
+
+        <main class="animation-stage">
+            <div class="blood-vessel">
+                <div class="endothelial-layer"></div>
+                <div class="collagen-layer hidden"></div>
+                
+                <div id="platelets-container"></div>
+                <div id="factors-container"></div>
+            </div>
+        </main>
+    </div>
+
+    <footer class="timeline-controls">
+        <button id="btn-prev" disabled>◀ 上一步</button>
+        <div class="timeline">
+            <div class="step active" data-step="0">血管损伤</div>
+            <div class="step" data-step="1">初级止血</div>
+            <div class="step" data-step="2">起始阶段</div>
+            <div class="step" data-step="3">放大阶段</div>
+            <div class="step" data-step="4">传播阶段</div>
+        </div>
+        <button id="btn-next">下一步 ▶</button>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
