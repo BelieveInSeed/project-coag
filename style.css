@@ -97,8 +97,8 @@ select {
 /* 伪 3D 凝血因子与血小板 (通用类) */
 .platelet {
     position: absolute;
-    width: 120px;
-    height: 70px;
+    width: 360px;
+    height: 150px;
     background: radial-gradient(circle at 30% 30%, #e0e0e0, #888);
     border-radius: 50%;
     box-shadow: 3px 5px 10px rgba(0, 0, 0, 0.5);
@@ -128,7 +128,7 @@ select {
 /* 各因子专属配色 */
 .f-vwf {
     background: radial-gradient(circle at 30% 30%, #9b59b6, #8e44ad);
-    width: 40px;
+    width: 100px;
     border-radius: 10px;
 }
 

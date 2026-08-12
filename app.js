@@ -1,19 +1,19 @@
 // 全局状态管理
 const appState = {
-  currentCondition: 'normal', // 可选: normal, vwd, hemophilia_a, vit_k_toxicity, dic
-  currentStage: 0, // 0: 血管损伤, 1: 初级止血, 2: 起始阶段, 3: 放大阶段, 4: 传播阶段
-  
-  // 用于判定当前病理状态下，某个阶段是否会“卡住”或“报错”
-  checkCondition() {
-    if (this.currentCondition === 'vwd' && this.currentStage >= 1) {
-      return { status: 'fail', message: '由于缺乏 vWF，初级止血失败...' };
+    currentCondition: 'normal', // 可选: normal, vwd, hemophilia_a, vit_k_toxicity, dic
+    currentStage: 0, // 0: 血管损伤, 1: 初级止血, 2: 起始阶段, 3: 放大阶段, 4: 传播阶段
+
+    // 用于判定当前病理状态下，某个阶段是否会“卡住”或“报错”
+    checkCondition() {
+        if (this.currentCondition === 'vwd' && this.currentStage >= 1) {
+            return { status: 'fail', message: '由于缺乏 vWF，初级止血失败...' };
+        }
+        if (this.currentCondition === 'hemophilia_a' && this.currentStage >= 4) {
+            return { status: 'fail', message: '缺乏 FVIII，Tenase 复合物无法组装，传播阶段中止...' };
+        }
+        // ... 其他逻辑
+        return { status: 'success' };
     }
-    if (this.currentCondition === 'hemophilia_a' && this.currentStage >= 4) {
-      return { status: 'fail', message: '缺乏 FVIII，Tenase 复合物无法组装，传播阶段中止...' };
-    }
-    // ... 其他逻辑
-    return { status: 'success' };
-  }
 };
 
 // 全局状态
@@ -90,7 +90,7 @@ function playAnimationForCurrentStage() {
     if (state.stage === 0) {
         // 0: 血管损伤
         tl.to(elements.collagen, { opacity: 1, duration: 0.5 });
-    } 
+    }
     else if (state.stage === 1) {
         // 1: 初级止血
         if (state.condition === 'vwd') {
@@ -101,10 +101,10 @@ function playAnimationForCurrentStage() {
         createFactorElement('f-vwf', 'vWF', { x: 50, y: 100 });
         createFactorElement('platelet', 'Platelet', { x: 100, y: 50 });
         // GSAP 将它们移动到底部的胶原上
-        tl.to('.f-vwf', { y: window.innerHeight - 250, x: window.innerWidth * 0.4, duration: 1 })
-          .to('.platelet', { y: window.innerHeight - 260, x: window.innerWidth * 0.4, duration: 1 }, "-=0.5");
+        tl.to('.f-vwf', { y: window.innerHeight - 240, x: window.innerWidth * 0.4 - 10, duration: 1 })
+            .to('.platelet', { y: window.innerHeight - 350, x: window.innerWidth * 0.4, duration: 1 }, "-=0.5");
     }
-// ...（接上一阶段的 playAnimationForCurrentStage 函数）...
+    // ...（接上一阶段的 playAnimationForCurrentStage 函数）...
 
     else if (state.stage === 2) {
         // --- 2: 起始阶段 (Initiation) ---
@@ -118,43 +118,43 @@ function playAnimationForCurrentStage() {
         // 1. 暴露组织因子 (TF)
         const tf = createFactorElement('f-tf', 'TF', { x: window.innerWidth * 0.3, y: window.innerHeight - 150 });
         gsap.set(tf, { backgroundColor: '#8e44ad', borderRadius: '5px' }); // TF 形状略有不同
-        
+
         // 2. FVII 出现并与 TF 结合
         const f7 = createFactorElement('f-vii', 'FVII', { x: 50, y: 50 });
-        
+
         // 3. 活化 FX 和 FIX，产生微量凝血酶 (Thrombin/FIIa)
         const fx = createFactorElement('f-x', 'FX', { x: 150, y: 50 });
         const fii = createFactorElement('f-ii', 'FII', { x: 250, y: 50 });
 
         tl.to(f7, { x: window.innerWidth * 0.3, y: window.innerHeight - 180, duration: 1 }) // FVII 结合 TF
-          .to(f7, { textContent: 'FVIIa', backgroundColor: '#2980b9', duration: 0.2 }) // 活化为 FVIIa
-          .to(fx, { x: window.innerWidth * 0.3, y: window.innerHeight - 210, duration: 1 }, "+=0.2") // FX 靠近复合物
-          .to(fx, { textContent: 'FXa', backgroundColor: '#d35400', duration: 0.2 }) // FX 活化为 FXa
-          .to(fii, { x: window.innerWidth * 0.3, y: window.innerHeight - 240, duration: 1 }, "+=0.2")
-          .to(fii, { textContent: 'FIIa\n(微量)', scale: 0.8, backgroundColor: '#27ae60', duration: 0.2 }); // 产生微量凝血酶
+            .to(f7, { textContent: 'FVIIa', backgroundColor: '#2980b9', duration: 0.2 }) // 活化为 FVIIa
+            .to(fx, { x: window.innerWidth * 0.3, y: window.innerHeight - 210, duration: 1 }, "+=0.2") // FX 靠近复合物
+            .to(fx, { textContent: 'FXa', backgroundColor: '#d35400', duration: 0.2 }) // FX 活化为 FXa
+            .to(fii, { x: window.innerWidth * 0.3, y: window.innerHeight - 240, duration: 1 }, "+=0.2")
+            .to(fii, { textContent: 'FIIa\n(微量)', scale: 0.8, backgroundColor: '#27ae60', duration: 0.2 }); // 产生微量凝血酶
     }
-    
+
     else if (state.stage === 3) {
         // --- 3: 放大阶段 (Amplification) ---
         // 重心转移：微量凝血酶 (FIIa) 移动到初级止血阶段粘附的血小板上
         const microThrombin = document.querySelector('.f-ii'); // 获取上一阶段产生的 FIIa
         const platelet = document.querySelector('.platelet');
-        
-        if(!platelet) return; // 防错处理
+
+        if (!platelet) return; // 防错处理
 
         // 1. 凝血酶活化血小板 (通过 PAR 受体)
         tl.to(microThrombin, { x: gsap.getProperty(platelet, "x"), y: gsap.getProperty(platelet, "y") - 40, duration: 1 })
-          .to(platelet, { filter: 'drop-shadow(0 0 20px #f1c40f)', scale: 1.1, duration: 0.5 }); // 血小板形态改变发光
-          
+            .to(platelet, { filter: 'drop-shadow(0 0 20px #f1c40f)', scale: 1.1, duration: 0.5 }); // 血小板形态改变发光
+
         // 2. 凝血酶活化辅因子 (FV, FVIII) 和 FXI
         const fv = createFactorElement('f-v', 'FV', { x: window.innerWidth * 0.5, y: 100 });
         const f8 = createFactorElement('f-viii', 'FVIII', { x: window.innerWidth * 0.6, y: 100 });
-        
+
         tl.to([fv, f8], { y: gsap.getProperty(platelet, "y") - 60, stagger: 0.3, duration: 1 })
-          .to(fv, { textContent: 'FVa', backgroundColor: '#c0392b', duration: 0.2 })
-          .to(f8, { textContent: 'FVIIIa', backgroundColor: '#e67e22', duration: 0.2 });
+            .to(fv, { textContent: 'FVa', backgroundColor: '#c0392b', duration: 0.2 })
+            .to(f8, { textContent: 'FVIIIa', backgroundColor: '#e67e22', duration: 0.2 });
     }
-    
+
     else if (state.stage === 4) {
         // --- 4: 传播阶段 (Propagation) & 凝血酶爆发 ---
         if (state.condition === 'hemophilia_a') {
@@ -169,12 +169,12 @@ function playAnimationForCurrentStage() {
         // 1. 组装 Tenase (FIXa + FVIIIa) 和 Prothrombinase (FXa + FVa)
         // 为简化视觉，这里直接演示复合体的效能
         const prothrombin = createFactorElement('f-ii', 'FII', { x: pX + 100, y: 50 });
-        
+
         tl.to(prothrombin, { x: pX, y: pY - 80, duration: 1 })
-          // 2. 凝血酶爆发 (Thrombin Burst)
-          .call(() => triggerThrombinBurst(pX, pY)) 
-          // 3. 纤维蛋白网形成
-          .call(() => createFibrinMesh(pX, pY), null, "+=1");
+            // 2. 凝血酶爆发 (Thrombin Burst)
+            .call(() => triggerThrombinBurst(pX, pY))
+            // 3. 纤维蛋白网形成
+            .call(() => createFibrinMesh(pX, pY), null, "+=1");
     }
 }
 
@@ -185,7 +185,7 @@ function triggerThrombinBurst(x, y) {
     for (let i = 0; i < 15; i++) {
         const burstFIIa = createFactorElement('f-ii burst', 'FIIa', { x: x, y: y });
         gsap.set(burstFIIa, { backgroundColor: '#2ecc71', scale: 0.5 });
-        
+
         // 向四周散射的动画
         gsap.to(burstFIIa, {
             x: x + (Math.random() - 0.5) * 300,
