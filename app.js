@@ -87,11 +87,11 @@ function resetSimulation() {
 function playAnimationForCurrentStage() {
     const tl = gsap.timeline();
 
-    if (state.stage === 0) {
+    if (state.stage === 1) {
         // 0: 血管损伤
         tl.to(elements.collagen, { opacity: 1, duration: 0.5 });
     }
-    else if (state.stage === 1) {
+    else if (state.stage === 2) {
         // 1: 初级止血
         if (state.condition === 'vwd') {
             triggerPathologyAlert("初级止血失败：缺乏 vWF (血管性血友病)，血小板无法有效粘附至暴露的胶原。");
@@ -101,12 +101,12 @@ function playAnimationForCurrentStage() {
         createFactorElement('f-vwf', 'vWF', { x: 50, y: 100 });
         createFactorElement('platelet', 'Platelet', { x: 100, y: 50 });
         // GSAP 将它们移动到底部的胶原上
-        tl.to('.f-vwf', { y: window.innerHeight - 240, x: window.innerWidth * 0.4 - 10, duration: 1 })
+        tl.to('.f-vwf', { y: window.innerHeight - 240, x: window.innerWidth * 0.4 - 30, duration: 1 })
             .to('.platelet', { y: window.innerHeight - 350, x: window.innerWidth * 0.4, duration: 1 }, "-=0.5");
     }
     // ...（接上一阶段的 playAnimationForCurrentStage 函数）...
 
-    else if (state.stage === 2) {
+    else if (state.stage === 3) {
         // --- 2: 起始阶段 (Initiation) ---
         if (state.condition === 'vit_k') {
             triggerPathologyAlert("起始失败：维生素K拮抗剂中毒。缺乏 γ-羧化，因子 VII、IX、X、II 无法结合至细胞表面的磷脂膜。外源性途径中断，PT 延长。");
@@ -134,7 +134,7 @@ function playAnimationForCurrentStage() {
             .to(fii, { textContent: 'FIIa\n(微量)', scale: 0.8, backgroundColor: '#27ae60', duration: 0.2 }); // 产生微量凝血酶
     }
 
-    else if (state.stage === 3) {
+    else if (state.stage === 4) {
         // --- 3: 放大阶段 (Amplification) ---
         // 重心转移：微量凝血酶 (FIIa) 移动到初级止血阶段粘附的血小板上
         const microThrombin = document.querySelector('.f-ii'); // 获取上一阶段产生的 FIIa
@@ -155,7 +155,7 @@ function playAnimationForCurrentStage() {
             .to(f8, { textContent: 'FVIIIa', backgroundColor: '#e67e22', duration: 0.2 });
     }
 
-    else if (state.stage === 4) {
+    else if (state.stage === 5) {
         // --- 4: 传播阶段 (Propagation) & 凝血酶爆发 ---
         if (state.condition === 'hemophilia_a') {
             triggerPathologyAlert("传播中止：血友病 A 缺乏因子 VIII (FVIII)。无法在血小板表面组装内源性因子X酶 (Tenase) 复合物，凝血酶爆发失败，导致严重出血。");
