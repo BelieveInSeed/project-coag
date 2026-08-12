@@ -1,75 +1,208 @@
 /* 基础重置与排版 */
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; height: 100vh; background-color: #121212; color: #fff; }
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
 
-.simulator-container { display: flex; flex: 1; overflow: hidden; }
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: #121212;
+    color: #fff;
+}
+
+.simulator-container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
 
 /* 侧边栏样式 */
-.control-panel { width: 320px; background-color: #1e1e24; padding: 20px; border-right: 2px solid #333; z-index: 10; }
-.control-panel h2 { font-size: 1.2rem; margin-bottom: 15px; color: #4da8da; }
-select { width: 100%; padding: 10px; margin-bottom: 20px; background: #333; color: white; border: 1px solid #555; border-radius: 5px; }
-.info-card { background: #2a2a35; padding: 15px; border-radius: 8px; line-height: 1.5; }
-.alert-box { margin-top: 15px; padding: 15px; background: rgba(220, 53, 69, 0.2); border-left: 4px solid #dc3545; color: #ff8b94; display: none; }
+.control-panel {
+    width: 320px;
+    background-color: #1e1e24;
+    padding: 20px;
+    border-right: 2px solid #333;
+    z-index: 10;
+}
+
+.control-panel h2 {
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+    color: #4da8da;
+}
+
+select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    background: #333;
+    color: white;
+    border: 1px solid #555;
+    border-radius: 5px;
+}
+
+.info-card {
+    background: #2a2a35;
+    padding: 15px;
+    border-radius: 8px;
+    line-height: 1.5;
+}
+
+.alert-box {
+    margin-top: 15px;
+    padding: 15px;
+    background: rgba(220, 53, 69, 0.2);
+    border-left: 4px solid #dc3545;
+    color: #ff8b94;
+    display: none;
+}
 
 /* 舞台：伪 3D 血管腔 */
-.animation-stage { 
-    flex: 1; 
-    position: relative; 
+.animation-stage {
+    flex: 1;
+    position: relative;
     /* 模拟血液背景的纵深感 */
     background: radial-gradient(circle at center, #6b0f1a 0%, #200000 100%);
-    perspective: 1000px; /* 开启 3D 视角 */
+    perspective: 1000px;
+    /* 开启 3D 视角 */
     overflow: hidden;
 }
 
 /* 伪 3D 细胞与基质元件 */
-.endothelial-layer { 
-    position: absolute; bottom: 0; width: 100%; height: 120px; 
-    background: linear-gradient(to top, #804040, #a05050); 
+.endothelial-layer {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 120px;
+    background: linear-gradient(to top, #804040, #a05050);
     border-top: 4px solid #c06060;
 }
+
 .collagen-layer {
-    position: absolute; bottom: 110px; left: 30%; width: 40%; height: 20px;
+    position: absolute;
+    bottom: 102px;
+    left: 30%;
+    width: 40%;
+    height: 20px;
     background: repeating-linear-gradient(45deg, #d4af37, #d4af37 5px, #b8860b 5px, #b8860b 10px);
     border-radius: 10px;
-    opacity: 0; /* 初始隐藏，损伤后显现 */
+    opacity: 0;
+    /* 初始隐藏，损伤后显现 */
 }
 
 /* 伪 3D 凝血因子与血小板 (通用类) */
 .platelet {
-    position: absolute; width: 60px; height: 35px;
+    position: absolute;
+    width: 120px;
+    height: 70px;
     background: radial-gradient(circle at 30% 30%, #e0e0e0, #888);
     border-radius: 50%;
-    box-shadow: 3px 5px 10px rgba(0,0,0,0.5);
+    box-shadow: 3px 5px 10px rgba(0, 0, 0, 0.5);
     transition: all 0.3s ease;
 }
+
 /* 活化后的血小板（带伪足，可通过更换 SVG 或 clip-path 实现，这里用样式示意） */
-.platelet.activated { filter: drop-shadow(0 0 8px yellow); }
+.platelet.activated {
+    filter: drop-shadow(0 0 8px yellow);
+}
 
 .factor {
-    position: absolute; width: 28px; height: 28px; border-radius: 50%;
-    display: flex; justify-content: center; align-items: center;
-    font-size: 11px; font-weight: bold; color: white; text-shadow: 1px 1px 1px black;
-    box-shadow: inset -3px -3px 6px rgba(0,0,0,0.4), 2px 2px 5px rgba(0,0,0,0.5);
+    position: absolute;
+    width: 100px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 22px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 1px black;
+    box-shadow: inset -3px -3px 6px rgba(0, 0, 0, 0.4), 2px 2px 5px rgba(0, 0, 0, 0.5);
 }
+
 /* 各因子专属配色 */
-.f-vwf { background: radial-gradient(circle at 30% 30%, #9b59b6, #8e44ad); width: 40px; border-radius: 10px; }
-.f-vii { background: radial-gradient(circle at 30% 30%, #3498db, #2980b9); }
-.f-x { background: radial-gradient(circle at 30% 30%, #e67e22, #d35400); }
-.f-ii { background: radial-gradient(circle at 30% 30%, #2ecc71, #27ae60); }
-.f-viii { background: radial-gradient(circle at 30% 30%, #f1c40f, #f39c12); }
-.f-ix { background: radial-gradient(circle at 30% 30%, #1abc9c, #16a085); }
+.f-vwf {
+    background: radial-gradient(circle at 30% 30%, #9b59b6, #8e44ad);
+    width: 40px;
+    border-radius: 10px;
+}
+
+.f-vii {
+    background: radial-gradient(circle at 30% 30%, #3498db, #2980b9);
+}
+
+.f-x {
+    background: radial-gradient(circle at 30% 30%, #e67e22, #d35400);
+}
+
+.f-ii {
+    background: radial-gradient(circle at 30% 30%, #2ecc71, #27ae60);
+}
+
+.f-viii {
+    background: radial-gradient(circle at 30% 30%, #f1c40f, #f39c12);
+}
+
+.f-ix {
+    background: radial-gradient(circle at 30% 30%, #1abc9c, #16a085);
+}
 
 /* 底部时间轴控制 */
-.timeline-controls { height: 80px; background: #1a1a1a; display: flex; align-items: center; justify-content: center; padding: 0 20px; border-top: 1px solid #333; }
-.timeline-controls button { padding: 10px 20px; background: #4da8da; color: #fff; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-.timeline-controls button:disabled { background: #555; cursor: not-allowed; }
-.timeline { display: flex; flex: 1; justify-content: space-around; margin: 0 20px; }
-.step { padding: 5px 15px; color: #777; border-bottom: 3px solid transparent; transition: all 0.3s; }
-.step.active { color: #fff; border-bottom: 3px solid #4da8da; font-weight: bold; text-shadow: 0 0 5px rgba(77, 168, 218, 0.5); }
+.timeline-controls {
+    height: 80px;
+    background: #1a1a1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px;
+    border-top: 1px solid #333;
+}
+
+.timeline-controls button {
+    padding: 10px 20px;
+    background: #4da8da;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.timeline-controls button:disabled {
+    background: #555;
+    cursor: not-allowed;
+}
+
+.timeline {
+    display: flex;
+    flex: 1;
+    justify-content: space-around;
+    margin: 0 20px;
+}
+
+.step {
+    padding: 5px 15px;
+    color: #777;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s;
+}
+
+.step.active {
+    color: #fff;
+    border-bottom: 3px solid #4da8da;
+    font-weight: bold;
+    text-shadow: 0 0 5px rgba(77, 168, 218, 0.5);
+}
 
 /* 病理状态：未羧化/失活的因子 */
 .factor.inactive {
-    background: radial-gradient(circle at 30% 30%, #95a5a6, #7f8c8d) !important; /* 灰色 */
+    background: radial-gradient(circle at 30% 30%, #95a5a6, #7f8c8d) !important;
+    /* 灰色 */
     color: #ccc;
     box-shadow: none;
     opacity: 0.7;
@@ -77,7 +210,9 @@ select { width: 100%; padding: 10px; margin-bottom: 20px; background: #333; colo
 
 /* 组织因子 (TF) 跨膜蛋白特殊样式 */
 .f-tf {
-    border-radius: 4px; /* 方形以区分于游离因子 */
+    border-radius: 4px;
+    /* 方形以区分于游离因子 */
     height: 40px;
-    border-bottom: 3px solid #000; /* 模拟扎根在细胞膜上 */
+    border-bottom: 3px solid #000;
+    /* 模拟扎根在细胞膜上 */
 }
