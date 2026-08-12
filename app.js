@@ -45,15 +45,53 @@ const stageDescriptions = [
     "传播阶段 (Propagation)：FIXa/FVIIIa 组成 Tenase；FXa/FVa 组成 Prothrombinase。发生凝血酶大爆发，形成纤维蛋白网。"
 ];
 
+// 自动进入 Stage 1 定时器
+let autoAdvanceTimer = null;
+
+function scheduleAutoAdvance() {
+    if (autoAdvanceTimer) {
+        clearTimeout(autoAdvanceTimer);
+    }
+    autoAdvanceTimer = setTimeout(() => {
+        autoAdvanceTimer = null;
+        if (state.stage === 0) {
+            changeStage(1);
+        }
+    }, 1000);
+}
+
 // 初始化监听器
 elements.btnNext.addEventListener('click', () => changeStage(1));
 elements.btnPrev.addEventListener('click', () => changeStage(-1));
 elements.conditionSelector.addEventListener('change', (e) => {
     state.condition = e.target.value;
     resetSimulation(); // 切换病理状态时重置回第 0 步
+    e.target.blur();   // 清除焦点
+    scheduleAutoAdvance(); // 等待 1 秒自动进入 Stage 1
+});
+
+// 键盘方向键 (向左/向右) 联动
+document.addEventListener('keydown', (e) => {
+    if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+
+    if (e.key === 'ArrowLeft' || e.key === 'Left') {
+        if (!elements.btnPrev.disabled) {
+            e.preventDefault();
+            changeStage(-1);
+        }
+    } else if (e.key === 'ArrowRight' || e.key === 'Right') {
+        if (!elements.btnNext.disabled) {
+            e.preventDefault();
+            changeStage(1);
+        }
+    }
 });
 
 function changeStage(direction) {
+    if (autoAdvanceTimer) {
+        clearTimeout(autoAdvanceTimer);
+        autoAdvanceTimer = null;
+    }
     let nextStage = state.stage + direction;
     if (nextStage >= 0 && nextStage <= state.maxStage) {
         state.stage = nextStage;
@@ -124,6 +162,10 @@ function updateUI() {
 }
 
 function resetSimulation() {
+    if (autoAdvanceTimer) {
+        clearTimeout(autoAdvanceTimer);
+        autoAdvanceTimer = null;
+    }
     state.stage = 0;
     elements.factorsContainer.innerHTML = ''; // 清空舞台
     gsap.killTweensOf("*"); // 停止所有进行中的动画
@@ -294,5 +336,6 @@ function triggerPathologyAlert(message) {
     elements.mechanismText.innerText = "生理过程已中断。";
 }
 
-// 初始化 UI
+// 初始化 UI 并安排 1 秒后自动进入 Stage 1
 updateUI();
+scheduleAutoAdvance();
