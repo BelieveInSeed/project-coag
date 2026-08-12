@@ -20,7 +20,7 @@ const appState = {
 const state = {
     stage: 0,
     condition: 'normal',
-    maxStage: 4
+    maxStage: 5
 };
 
 // DOM 元素引用
@@ -88,11 +88,11 @@ function playAnimationForCurrentStage() {
     const tl = gsap.timeline();
 
     if (state.stage === 1) {
-        // 0: 血管损伤
+        // 1: 血管损伤
         tl.to(elements.collagen, { opacity: 1, duration: 0.5 });
     }
     else if (state.stage === 2) {
-        // 1: 初级止血
+        // 2: 初级止血
         if (state.condition === 'vwd') {
             triggerPathologyAlert("初级止血失败：缺乏 vWF (血管性血友病)，血小板无法有效粘附至暴露的胶原。");
             return; // 动画中止
@@ -107,7 +107,7 @@ function playAnimationForCurrentStage() {
     // ...（接上一阶段的 playAnimationForCurrentStage 函数）...
 
     else if (state.stage === 3) {
-        // --- 2: 起始阶段 (Initiation) ---
+        // --- 3: 起始阶段 (Initiation) ---
         if (state.condition === 'vit_k') {
             triggerPathologyAlert("起始失败：维生素K拮抗剂中毒。缺乏 γ-羧化，因子 VII、IX、X、II 无法结合至细胞表面的磷脂膜。外源性途径中断，PT 延长。");
             // 视觉表现：生成灰色的因子，并在半空中停滞
@@ -135,7 +135,7 @@ function playAnimationForCurrentStage() {
     }
 
     else if (state.stage === 4) {
-        // --- 3: 放大阶段 (Amplification) ---
+        // --- 4: 放大阶段 (Amplification) ---
         // 重心转移：微量凝血酶 (FIIa) 移动到初级止血阶段粘附的血小板上
         const microThrombin = document.querySelector('.f-ii'); // 获取上一阶段产生的 FIIa
         const platelet = document.querySelector('.platelet');
@@ -156,7 +156,7 @@ function playAnimationForCurrentStage() {
     }
 
     else if (state.stage === 5) {
-        // --- 4: 传播阶段 (Propagation) & 凝血酶爆发 ---
+        // --- 5: 传播阶段 (Propagation) & 凝血酶爆发 ---
         if (state.condition === 'hemophilia_a') {
             triggerPathologyAlert("传播中止：血友病 A 缺乏因子 VIII (FVIII)。无法在血小板表面组装内源性因子X酶 (Tenase) 复合物，凝血酶爆发失败，导致严重出血。");
             return;
