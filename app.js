@@ -125,7 +125,7 @@ function handleBackwardStep(targetStage) {
 
     if (targetStage < 4) {
         // 重置血小板高亮和缩放
-        const platelet = document.querySelector('.platelet');
+        const platelet = document.querySelector('.platelet.primary-platelet') || document.querySelector('.platelet');
         if (platelet) {
             gsap.set(platelet, { filter: 'none', scale: 1 });
         }
@@ -173,9 +173,18 @@ function resetSimulation() {
     updateUI();
 }
 
+// 辅助函数：获取动画舞台的实际尺寸
+function getStageDimensions() {
+    const stageEl = document.querySelector('.animation-stage');
+    const width = stageEl ? stageEl.offsetWidth : (window.innerWidth - 320);
+    const height = stageEl ? stageEl.offsetHeight : window.innerHeight;
+    return { width, height };
+}
+
 // 核心动画分发器
 function playAnimationForCurrentStage() {
     const tl = gsap.timeline();
+    const { width: sWidth, height: sHeight } = getStageDimensions();
 
     if (state.stage === 1) {
         // 1: 血管损伤
@@ -187,11 +196,44 @@ function playAnimationForCurrentStage() {
             triggerPathologyAlert("初级止血失败：缺乏 vWF (血管性血友病)，血小板无法有效粘附至暴露的胶原。");
             return; // 动画中止
         }
-        createFactorElement('f-vwf', 'vWF', { x: 50, y: 100 });
-        createFactorElement('platelet', 'Platelet', { x: 100, y: 50 });
-        // GSAP 将它们移动到底部的胶原上
-        tl.to('.f-vwf', { y: window.innerHeight - 240, x: window.innerWidth * 0.3 - 40, duration: 1 })
-            .to('.platelet', { y: window.innerHeight - 350, x: window.innerWidth * 0.3, duration: 1 }, "-=0.5");
+        const primaryVwfX = sWidth * 0.16 - 30;
+        const primaryPltX = sWidth * 0.16;
+
+        const vwf = createFactorElement('f-vwf primary-vwf', 'vWF', { x: 50, y: 100 });
+        const primaryPlatelet = createFactorElement('platelet primary-platelet', 'Platelet', { x: 100, y: 50 });
+        
+        // GSAP 将第一个主血小板和 vWF 移动到底部的胶原上
+        tl.to(vwf, { y: sHeight - 240, x: primaryVwfX, duration: 1 })
+            .to(primaryPlatelet, { y: sHeight - 350, x: primaryPltX, duration: 1 }, "-=0.5");
+
+        // 主血小板动画结束后延迟，在右侧胶原区域陆续聚集更多血小板与 vWF (不同间距、不同大小、区别颜色)
+        const secondaryConfig = [
+            { vwfX: sWidth * 0.50 - 25, pltX: sWidth * 0.50, scale: 0.68, rot: -5 },
+            { vwfX: sWidth * 0.66 - 20, pltX: sWidth * 0.66, scale: 0.60, rot: 5 },
+            { vwfX: sWidth * 0.79 - 20, pltX: sWidth * 0.79, scale: 0.54, rot: -6 }
+        ];
+
+        secondaryConfig.forEach((cfg, idx) => {
+            const secVwf = createFactorElement('f-vwf secondary-vwf', 'vWF', { x: cfg.pltX, y: -60 });
+            const secPlt = createFactorElement('platelet secondary-platelet', 'Platelet', { x: cfg.pltX + 40, y: -120 });
+
+            const startOffset = (idx === 0) ? "+=0.5" : "-=0.35";
+
+            tl.to(secVwf, {
+                y: sHeight - 240,
+                x: cfg.vwfX,
+                duration: 0.6,
+                ease: "power2.out"
+            }, startOffset)
+            .to(secPlt, {
+                y: sHeight - 350,
+                x: cfg.pltX,
+                scale: cfg.scale,
+                rotation: cfg.rot,
+                duration: 0.6,
+                ease: "power2.out"
+            }, "-=0.3");
+        });
     }
 
     else if (state.stage === 3) {
@@ -224,9 +266,9 @@ function playAnimationForCurrentStage() {
 
     else if (state.stage === 4) {
         // --- 4: 放大阶段 (Amplification) ---
-        // 重心转移：微量凝血酶 (FIIa) 移动到初级止血阶段粘附的血小板上
+        // 重心转移：微量凝血酶 (FIIa) 移动到初级止血阶段粘附的主血小板上
         const microThrombin = document.querySelector('.f-ii'); // 获取上一阶段产生的 FIIa
-        const platelet = document.querySelector('.platelet');
+        const platelet = document.querySelector('.platelet.primary-platelet') || document.querySelector('.platelet');
 
         if (!platelet) return; // 防错处理
 
@@ -250,7 +292,7 @@ function playAnimationForCurrentStage() {
             return;
         }
 
-        const platelet = document.querySelector('.platelet');
+        const platelet = document.querySelector('.platelet.primary-platelet') || document.querySelector('.platelet');
         const pX = platelet ? gsap.getProperty(platelet, "x") : window.innerWidth * 0.4;
         const pY = platelet ? gsap.getProperty(platelet, "y") : window.innerHeight - 350;
 

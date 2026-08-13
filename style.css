@@ -120,16 +120,28 @@ select {
     transition: all 0.3s ease;
 }
 
-/* 活化后的血小板（带伪足，可通过更换 SVG 或 clip-path 实现，这里用样式示意） */
-.platelet.activated {
-    filter: drop-shadow(0 0 8px yellow);
+/* 区分主/副血小板与 vWF */
+.platelet.primary-platelet {
+    z-index: 3;
 }
 
-/* 各因子专属配色 */
+.platelet.secondary-platelet {
+    background: radial-gradient(circle at 30% 30%, #ff9f43, #d35400) !important;
+    box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.4);
+    z-index: 2;
+    opacity: 0.92;
+}
+
 .f-vwf {
     background: radial-gradient(circle at 30% 30%, #9b59b6, #8e44ad);
     width: 120px;
     border-radius: 10px;
+    z-index: 2;
+}
+
+.f-vwf.secondary-vwf {
+    opacity: 0.85;
+    z-index: 1;
 }
 
 .f-vii {
