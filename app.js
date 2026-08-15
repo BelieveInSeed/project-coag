@@ -133,6 +133,12 @@ function handleBackwardStep(targetStage) {
         }
     });
 
+    if (targetStage <= 4) {
+        document.querySelectorAll('.fibrinogen-strand').forEach(el => {
+            gsap.set(el, { stroke: '#95a5a6', filter: 'drop-shadow(0 0 2px rgba(0, 0, 0, 0.5))' });
+        });
+    }
+
     // 根据目标阶段恢复已有物体的状态与位置
     if (targetStage < 1) {
         gsap.set(elements.collagen, { opacity: 0 });
@@ -389,11 +395,31 @@ function playAnimationForCurrentStage() {
 
         // 1. 第一代凝血酶 (FIIa) 移动到主血小板上，通过 PAR 受体活化血小板
         tl.to(microThrombin, { x: pltX - 100, y: pltY + 45, duration: 1 })
-            .to(platelet, { filter: 'drop-shadow(0 0 20px #f1c40f)', scale: 1.1, duration: 0.5 }); // 血小板形态改变发光
+            .to(platelet, { filter: 'drop-shadow(0 0 20px #f1c40f)', scale: 1.1, duration: 0.5 }) // 血小板形态改变发光
+            .call(() => createFibrinogenStrands(pltX, pltY), null, "-=0.2");
 
-        // 2. 从 Stage 3 FIIa 结束位置生成新的 FIIa，飞向舞台中间左侧
         const stage3FIIaX = sWidth * 0.60 * 0.95;
         const stage3FIIaY = 200;
+
+        // 1.5 在过程 1 和 2 中间生成一个额外的 FIIa，移动到 fibrinogen 中间将其活化为白色后消失
+        const actFIIa = createFactorElement('f-ii stage4-act-fiia', 'IIa', { x: stage3FIIaX, y: stage3FIIaY });
+        gsap.set(actFIIa, { scale: 0.8, backgroundColor: '#27ae60', zIndex: 10 });
+
+        tl.to(actFIIa, { x: pltX + 260, y: pltY + 145, duration: 1 }, "+=0.4")
+            .call(() => {
+                const fibrinogens = document.querySelectorAll('.fibrinogen-strand');
+                if (fibrinogens.length > 0) {
+                    gsap.to(fibrinogens, {
+                        stroke: '#ecf0f1',
+                        filter: 'drop-shadow(0 0 6px #ffffff)',
+                        duration: 0.5
+                    });
+                }
+            })
+            .to(actFIIa, { opacity: 0, scale: 0, duration: 0.4, onComplete: () => actFIIa.remove() }, "+=0.1");
+
+
+        // 2. 从 Stage 3 FIIa 结束位置生成新的 FIIa，飞向舞台中间左侧
         const midLeftX = pltX - 100;
         const midLeftY = sHeight * 0.42;
         const alignX = midLeftX - 160;
@@ -401,7 +427,7 @@ function playAnimationForCurrentStage() {
         const secondFIIa = createFactorElement('f-ii stage4-fiia', 'IIa', { x: stage3FIIaX, y: stage3FIIaY });
         gsap.set(secondFIIa, { scale: 0.8, backgroundColor: '#27ae60' });
 
-        tl.to(secondFIIa, { x: midLeftX, y: midLeftY, duration: 1 }, "+=1.5");
+        tl.to(secondFIIa, { x: midLeftX, y: midLeftY, duration: 1 }, "+=0.5");
 
         // 3. f11, [f8, vwfBound], f5 垂直对齐 (x: alignX) 并同时显现：
         const f11 = createFactorElement('f-xi', 'XI', { x: alignX, y: midLeftY - 60 });
@@ -422,7 +448,11 @@ function playAnimationForCurrentStage() {
         // (2) FVIII 和 vWF 靠近 FIIa，FVIII 活化为 FVIIIa，vWF 飞向上方胶原层
         tl.to([f8, vwfBound], { x: (i) => i === 0 ? midLeftX : midLeftX - 60, y: midLeftY + 40, duration: 0.8 }, "+=0.2")
             .to(f8, { textContent: 'VIIIa', backgroundColor: '#e67e22', duration: 0.3 })
-            .to(vwfBound, { x: sWidth * 0.45, y: 60, duration: 1, ease: "power1.out" }, "-=0.2")
+            .to(vwfBound, { x: sWidth * 0.45, y: 90, duration: 1, ease: "power1.out" }, "-=0.2")
+            .call(() => {
+                vwfBound.className = 'factor f-vwf bound-vwf';
+                gsap.set(vwfBound, { scale: 1 });
+            })
             .to(f8, { x: midLeftX + 210, y: midLeftY + 60, duration: 0.8 }, "-=0.6");
 
         // (3) FV 移动到 FIIa 旁，活化为 FVa
@@ -433,11 +463,16 @@ function playAnimationForCurrentStage() {
 
     else if (state.stage === 5) {
         // --- 5: 传播阶段 (Propagation) & 凝血酶爆发 ---
-        // 进入阶段 5 时移除 Stage 3 产生的 Xa/Va 复合物
+        // 进入阶段 5 时移除 Stage 3 产生的 Xa/Va 复合物以及 Stage 4 产生的第二代 FIIa
         const stage3XaVa = document.querySelector('.f-x');
         if (stage3XaVa && parseInt(stage3XaVa.dataset.createdStage) === 3) {
             stage3XaVa.remove();
         }
+        const stage4FIIa = document.querySelector('.stage4-fiia');
+        if (stage4FIIa) {
+            stage4FIIa.remove();
+        }
+
 
         if (state.condition === 'hemophilia_a') {
             state.isAnimating = false;
@@ -509,36 +544,106 @@ function triggerThrombinBurst(x, y) {
     }
 }
 
-// 形成纤维蛋白网特效
-function createFibrinMesh(x, y) {
-    const meshContainer = document.createElement('div');
-    meshContainer.className = 'fibrin-mesh-container';
-    meshContainer.dataset.createdStage = state.stage; // 记录创建时的阶段
-    meshContainer.style.position = 'absolute';
-    meshContainer.style.left = (x - 60) + 'px';
-    meshContainer.style.top = (y - 40) + 'px';
-    meshContainer.style.width = '120px';
-    meshContainer.style.height = '80px';
-    meshContainer.style.zIndex = '5';
-    elements.factorsContainer.appendChild(meshContainer);
+// 获取或创建用于绘制纤维蛋白/纤维蛋白原的 SVG 容器
+function getOrCreateFibrinSVG() {
+    let svgContainer = document.getElementById('fibrin-svg-container');
+    if (!svgContainer) {
+        svgContainer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svgContainer.id = 'fibrin-svg-container';
+        svgContainer.style.position = 'absolute';
+        svgContainer.style.left = '0';
+        svgContainer.style.top = '0';
+        svgContainer.style.width = '100%';
+        svgContainer.style.height = '100%';
+        svgContainer.style.pointerEvents = 'none';
+        svgContainer.style.zIndex = '4';
+        svgContainer.style.overflow = 'visible';
+        elements.factorsContainer.appendChild(svgContainer);
+    }
+    return svgContainer;
+}
 
-    // 随机生成交错的纤维蛋白丝
-    for (let i = 0; i < 20; i++) {
-        const thread = document.createElement('div');
-        thread.style.position = 'absolute';
-        thread.style.backgroundColor = '#ecf0f1'; // 白色纤维蛋白
-        thread.style.boxShadow = '0 0 5px #bdc3c7';
-        thread.style.height = '2px';
-        thread.style.width = (40 + Math.random() * 80) + 'px';
-        thread.style.top = (Math.random() * 80) + 'px';
-        thread.style.left = (Math.random() * 40) + 'px';
-        thread.style.transform = `rotate(${Math.random() * 180}deg)`;
-        thread.style.opacity = 0;
-        meshContainer.appendChild(thread);
+// 生成 ~ 形状的三阶贝塞尔曲线 Path 数据
+function generateTildePath(x1, y1, x2, y2, amplitude) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const dist = Math.hypot(dx, dy) || 1;
+    const ux = dx / dist;
+    const uy = dy / dist;
+    const nx = -uy;
+    const ny = ux;
 
-        gsap.to(thread, { opacity: 1, duration: 0.5, delay: i * 0.05 });
+    const p1x = x1 + ux * (dist * 0.33) + nx * amplitude;
+    const p1y = y1 + uy * (dist * 0.33) + ny * amplitude;
+    const p2x = x1 + ux * (dist * 0.67) - nx * amplitude;
+    const p2y = y1 + uy * (dist * 0.67) - ny * amplitude;
+
+    return `M ${x1.toFixed(1)},${y1.toFixed(1)} C ${p1x.toFixed(1)},${p1y.toFixed(1)} ${p2x.toFixed(1)},${p2y.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
+}
+
+// 在活化主血小板下方生成 fibrinogen 丝（~ 形状，颜色为不活化物体的配色，一端接主血小板，向右延伸，长/向/弯各异）
+function createFibrinogenStrands(pltX, pltY) {
+    const svg = getOrCreateFibrinSVG();
+    const count = 5;
+
+    for (let i = 0; i < count; i++) {
+        const startX = pltX + 80 + i * 35 + (Math.random() * 20 - 10);
+        const startY = pltY + 115 + (Math.random() * 15 - 5);
+
+        const len = 120 + Math.random() * 120; // 长度不同
+        const endX = startX + len; // 向右侧延伸
+        const endY = startY + (Math.random() * 70 - 25); // 方向/角度不同
+        const amp = (18 + Math.random() * 22) * (i % 2 === 0 ? 1 : -1); // 弯曲程度不同
+
+        const d = generateTildePath(startX, startY, endX, endY, amp);
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', d);
+        path.setAttribute('class', 'fibrinogen-strand');
+        path.setAttribute('data-created-stage', '4');
+        path.style.opacity = '0';
+        svg.appendChild(path);
+
+        gsap.to(path, { opacity: 1, duration: 0.6, delay: i * 0.08 });
     }
 }
+
+// 形成纤维蛋白网特效
+function createFibrinMesh(pX, pY) {
+    const svg = getOrCreateFibrinSVG();
+
+    // 生成新的交错纤维蛋白丝：方向大致为左右向，Y坐标与 fibrinogen 所在区间 (pY + 80 ~ pY + 185) 一致，长度和数量增加
+    const { width: sWidth } = getStageDimensions();
+    const minX = pX - 40;
+    const maxX = sWidth * 0.88;
+    const minY = pY + 80;
+    const maxY = pY + 185;
+
+    const threadCount = 45; // 增加数量
+    for (let i = 0; i < threadCount; i++) {
+        const x1 = minX + Math.random() * (maxX - minX - 100);
+        const y1 = minY + Math.random() * (maxY - minY);
+
+        // 方向大致为左右向 (倾角限制在 -25° 到 +25° 之间)
+        const angle = (Math.random() * 50 - 25) * (Math.PI / 180);
+        const len = 160 + Math.random() * 160; // 增加长度
+        const x2 = x1 + Math.cos(angle) * len;
+        const y2 = y1 + Math.sin(angle) * len;
+
+        const amp = (16 + Math.random() * 22) * (i % 2 === 0 ? 1 : -1);
+
+        const d = generateTildePath(x1, y1, x2, y2, amp);
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', d);
+        path.setAttribute('class', 'fibrin-strand');
+        path.setAttribute('data-created-stage', '5');
+        path.style.opacity = '0';
+        svg.appendChild(path);
+
+        gsap.to(path, { opacity: 1, duration: 0.5, delay: i * 0.03 });
+    }
+}
+
+
 
 // 辅助函数：在舞台上创建 3D 因子元素
 function createFactorElement(className, text, initialPos) {

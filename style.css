@@ -281,3 +281,21 @@ select {
     border-bottom: 3px solid #000;
     /* 模拟扎根在细胞膜上 */
 }
+
+/* 纤维蛋白原 (Fibrinogen) & 纤维蛋白丝 (Fibrin) 样式 */
+.fibrinogen-strand {
+    fill: none;
+    stroke: #95a5a6;
+    stroke-width: 3px;
+    stroke-linecap: round;
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
+    transition: stroke 0.5s ease, filter 0.5s ease;
+}
+
+.fibrin-strand {
+    fill: none;
+    stroke: #ecf0f1;
+    stroke-width: 2.5px;
+    stroke-linecap: round;
+    filter: drop-shadow(0 0 5px #bdc3c7);
+}
