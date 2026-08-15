@@ -22,8 +22,12 @@ const state = {
     condition: 'normal',
     maxStage: 5,
     isAnimating: false,
-    queuedNext: false
+    queuedNext: false,
+    hasAlertTriggered: false,
+    isPaused: false
 };
+
+
 
 let currentTimeline = null;
 
@@ -74,11 +78,14 @@ elements.conditionSelector.addEventListener('change', (e) => {
     scheduleAutoAdvance(); // 等待 1 秒自动进入 Stage 1
 });
 
-// 键盘方向键 (向左/向右) 联动
+// 键盘按键绑定 (Space 切换暂停/继续，Left/Right 方向键切换阶段)
 document.addEventListener('keydown', (e) => {
-    if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
 
-    if (e.key === 'ArrowLeft' || e.key === 'Left') {
+    if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        togglePause();
+    } else if (e.key === 'ArrowLeft' || e.key === 'Left') {
         if (!elements.btnPrev.disabled) {
             e.preventDefault();
             changeStage(-1);
@@ -90,6 +97,32 @@ document.addEventListener('keydown', (e) => {
         }
     }
 });
+
+function togglePause() {
+    state.isPaused = !state.isPaused;
+    if (currentTimeline) {
+        if (state.isPaused) {
+            currentTimeline.pause();
+        } else {
+            currentTimeline.resume();
+        }
+    }
+    showPauseIndicator(state.isPaused);
+}
+
+function showPauseIndicator(isPaused) {
+    let indicator = document.getElementById('pause-indicator');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'pause-indicator';
+        indicator.className = 'pause-indicator';
+        indicator.innerHTML = '⏸';
+        const stage = document.querySelector('.animation-stage');
+        if (stage) stage.appendChild(indicator);
+    }
+    indicator.style.display = isPaused ? 'block' : 'none';
+}
+
 
 function changeStage(direction) {
     if (autoAdvanceTimer) {
@@ -132,6 +165,16 @@ function handleBackwardStep(targetStage) {
             el.remove();
         }
     });
+
+    if ((state.condition === 'vwd' && targetStage < 2) ||
+        (state.condition === 'vit_k' && targetStage < 3) ||
+        (state.condition === 'hemophilia_a' && targetStage < 5)) {
+        state.hasAlertTriggered = false;
+        elements.alertBox.style.display = 'none';
+        elements.alertBox.innerText = '';
+    }
+
+
 
     if (targetStage <= 4) {
         document.querySelectorAll('.fibrinogen-strand').forEach(el => {
@@ -195,6 +238,65 @@ function handleBackwardStep(targetStage) {
     }
 }
 
+// 非罗马数字因子/物体图例定义 (key, 包含的 stages, 中文 label)
+const legendData = [
+    { key: 'vwf', stages: [2, 3, 4, 5], label: '血管因子 (vWF)' },
+    { key: 'platelet', stages: [2, 3, 4, 5], label: '血小板 (Platelet)' },
+    { key: 'tf', stages: [3, 4, 5], label: '组织因子 (TF)' },
+    { key: 'fibrinogen', stages: [4, 5], label: '纤维蛋白原 (Fibrinogen)' },
+    { key: 'fibrin', stages: [4, 5], label: '纤维蛋白丝 (Fibrin)' }
+];
+
+function updateLegend() {
+    const container = document.getElementById('legend-items');
+    const panel = document.getElementById('legend-panel');
+    if (!container || !panel) return;
+
+    container.innerHTML = '';
+    const currentStage = state.stage;
+
+    // 过滤出当前 stage 应该显示的非罗马数字物体
+    const activeItems = legendData.filter(item => item.stages.includes(currentStage));
+
+    if (activeItems.length === 0) {
+        panel.style.display = 'none';
+        return;
+    } else {
+        panel.style.display = 'block';
+    }
+
+
+    activeItems.forEach(item => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'legend-item';
+
+        let graphicHTML = '';
+        if (item.key === 'vwf') {
+            graphicHTML = `<div class="legend-graphic legend-vwf">vWF</div>`;
+        } else if (item.key === 'platelet') {
+            graphicHTML = `<div class="legend-graphic legend-platelet"></div>`;
+        } else if (item.key === 'tf') {
+            graphicHTML = `<div class="legend-graphic legend-tf">TF</div>`;
+        } else if (item.key === 'fibrinogen') {
+            graphicHTML = `
+                <svg class="legend-graphic legend-svg" viewBox="0 0 40 20">
+                    <path d="M 4,10 C 14,18 26,2 36,10" stroke="#95a5a6" stroke-width="3" fill="none" stroke-linecap="round"/>
+                </svg>`;
+        } else if (item.key === 'fibrin') {
+            graphicHTML = `
+                <svg class="legend-graphic legend-svg" viewBox="0 0 40 20">
+                    <path d="M 4,10 C 14,18 26,2 36,10" stroke="#ecf0f1" stroke-width="3" fill="none" stroke-linecap="round" filter="drop-shadow(0 0 3px #ffffff)"/>
+                </svg>`;
+        }
+
+        itemEl.innerHTML = `
+            ${graphicHTML}
+            <span class="legend-label">${item.label}</span>
+        `;
+        container.appendChild(itemEl);
+    });
+}
+
 function updateUI() {
     // 更新按钮状态
     elements.btnPrev.disabled = state.stage === 0;
@@ -206,10 +308,19 @@ function updateUI() {
         step.classList.toggle('active', stepNum === state.stage);
     });
 
-    // 更新说明文案，隐藏警告
+    // 更新说明文案，保持病理警告在触发后持续显示至 stage 5
     elements.mechanismText.innerText = stageDescriptions[state.stage];
-    elements.alertBox.style.display = 'none';
+    if (state.condition === 'normal' || state.stage === 0) {
+        elements.alertBox.style.display = 'none';
+        elements.alertBox.innerText = '';
+    } else if (elements.alertBox.innerText) {
+        elements.alertBox.style.display = 'block';
+    }
+
+    // 更新侧边栏图例
+    updateLegend();
 }
+
 
 function resetSimulation() {
     if (autoAdvanceTimer) {
@@ -217,11 +328,19 @@ function resetSimulation() {
         autoAdvanceTimer = null;
     }
     state.stage = 0;
+    state.hasAlertTriggered = false;
+    state.isPaused = false;
+    showPauseIndicator(false);
+    elements.alertBox.style.display = 'none';
+    elements.alertBox.innerText = '';
     elements.factorsContainer.innerHTML = ''; // 清空舞台
     gsap.killTweensOf("*"); // 停止所有进行中的动画
     gsap.set(elements.collagen, { opacity: 0 }); // 隐藏胶原
     updateUI();
 }
+
+
+
 
 // 辅助函数：获取动画舞台的实际尺寸
 function getStageDimensions() {
@@ -233,6 +352,9 @@ function getStageDimensions() {
 
 // 核心动画分发器
 function playAnimationForCurrentStage() {
+    state.isPaused = false;
+    showPauseIndicator(false);
+
     if (currentTimeline) {
         currentTimeline.kill();
         currentTimeline = null;
@@ -240,17 +362,39 @@ function playAnimationForCurrentStage() {
     state.isAnimating = true;
     state.queuedNext = false;
 
+
     const tl = gsap.timeline({
         onComplete: () => {
             state.isAnimating = false;
             if (state.queuedNext) {
                 state.queuedNext = false;
                 changeStage(1);
+            } else if (state.condition !== 'normal' && state.stage > 0 && state.stage < state.maxStage) {
+                // 疾病状态下，动画播放完毕后自动推进到下一 stage；弹出 alertBox 后缩短等待间隔
+                const advanceDelay = state.hasAlertTriggered ? 200 : 600;
+                autoAdvanceTimer = setTimeout(() => {
+                    autoAdvanceTimer = null;
+                    if (state.stage < state.maxStage) {
+                        changeStage(1);
+                    }
+                }, advanceDelay);
             }
         }
     });
+
+    // 播放速度控制：正常生理状态为 1x 速度；疾病状态初始为 2x 速度，触发 alertBox 后加速至 3x 速度
+    if (state.condition !== 'normal') {
+        if (state.hasAlertTriggered) {
+            tl.timeScale(3);
+        } else {
+            tl.timeScale(2);
+        }
+    }
+
+
     currentTimeline = tl;
     const { width: sWidth, height: sHeight } = getStageDimensions();
+
 
     if (state.stage === 1) {
         // 1: 血管损伤
@@ -258,14 +402,9 @@ function playAnimationForCurrentStage() {
     }
     else if (state.stage === 2) {
         // 2: 初级止血
-        if (state.condition === 'vwd') {
-            state.isAnimating = false;
-            state.queuedNext = false;
-            triggerPathologyAlert("初级止血失败：缺乏 vWF (血管性血友病)，血小板无法有效粘附至暴露的胶原。");
-            return; // 动画中止
-        }
         const primaryVwfX = sWidth * 0.36 - 30;
         const primaryPltX = sWidth * 0.36;
+        const isVwd = state.condition === 'vwd';
 
         const vwf = createFactorElement('f-vwf primary-vwf', 'vWF', { x: 250, y: 400 });
         const primaryPlatelet = createFactorElement('platelet primary-platelet', 'Platelet', { x: primaryPltX + 100, y: 250 });
@@ -274,53 +413,76 @@ function playAnimationForCurrentStage() {
         tl.to(vwf, { y: sHeight - 150, x: primaryVwfX, duration: 1 })
             .to(primaryPlatelet, { y: sHeight - 260, x: primaryPltX, duration: 1 }, "-=0.5");
 
-        // 扩展期（Extension）：主血小板激活与脱颗粒反应，释放 vWF, TxA2, ADP 等活性介质
+        // 扩展期（Extension）：脱颗粒反应（vWD 状态下隐藏 granule-vwf）
         const granuleAdp = createFactorElement('granule-particle granule-adp', 'ADP', { x: primaryPltX + 160, y: sHeight - 240 });
         const granuleTxa2 = createFactorElement('granule-particle granule-txa2', 'TxA2', { x: primaryPltX + 150, y: sHeight - 250 });
-        const granuleVwf = createFactorElement('granule-particle granule-vwf', 'vWF', { x: primaryPltX + 170, y: sHeight - 230 });
 
-        gsap.set([granuleAdp, granuleTxa2, granuleVwf], { scale: 0, opacity: 0 });
+        const granulesToAnimate = [granuleAdp, granuleTxa2];
+        let granuleVwf = null;
 
-        // 在右侧胶原区域：secVwf 一开始就生成在最终位置 (vwfX, sHeight - 150)，初始不可见
+        if (!isVwd) {
+            granuleVwf = createFactorElement('granule-particle granule-vwf', 'vWF', { x: primaryPltX + 170, y: sHeight - 230 });
+            granulesToAnimate.push(granuleVwf);
+        }
+
+        gsap.set(granulesToAnimate, { scale: 0, opacity: 0 });
+
+        // 副血小板与 secVwf 配置 (vWD 状态下结束位置向右移，远离主血小板且互不接触)
+        const offsetRight = isVwd ? 80 : 0;
         const secondaryConfig = [
-            { vwfX: sWidth * 0.57, pltX: sWidth * 0.56, scale: 0.68, rot: -5 },
-            { vwfX: sWidth * 0.71, pltX: sWidth * 0.68, scale: 0.60, rot: 5 },
-            { vwfX: sWidth * 0.82, pltX: sWidth * 0.77, scale: 0.54, rot: -6 }
+            { vwfX: sWidth * 0.57, pltX: sWidth * 0.56 + offsetRight, scale: 0.68, rot: -5 },
+            { vwfX: sWidth * 0.71, pltX: sWidth * 0.69 + offsetRight, scale: 0.60, rot: 5 },
+            { vwfX: sWidth * 0.82, pltX: sWidth * 0.81 + offsetRight, scale: 0.54, rot: -6 }
         ];
 
         const secVwfEls = [];
         const secPltConfig = [];
 
         secondaryConfig.forEach((cfg) => {
-            const secVwf = createFactorElement('f-vwf secondary-vwf', 'vWF', { x: cfg.vwfX, y: sHeight - 150 });
-            gsap.set(secVwf, { opacity: 0 });
-            secVwfEls.push(secVwf);
+            if (!isVwd) {
+                // 正常状态下生成 secVwf
+                const secVwf = createFactorElement('f-vwf secondary-vwf', 'vWF', { x: cfg.vwfX, y: sHeight - 150 });
+                gsap.set(secVwf, { opacity: 0 });
+                secVwfEls.push(secVwf);
+            }
 
+            // 无论正常还是 vWD 状态，副血小板均在原本位置生成并飞入
             const secPlt = createFactorElement('platelet secondary-platelet', 'Platelet', { x: cfg.pltX + 1000, y: 500 });
             secPltConfig.push({ el: secPlt, cfg });
         });
 
         // 主血小板活化（高亮发光与形态改变）并脱颗粒释放介质
         tl.to(primaryPlatelet, { filter: 'drop-shadow(0 0 20px #f39c12)', scale: 1.05, duration: 0.4 })
-            .to([granuleAdp, granuleTxa2, granuleVwf], { scale: 1, opacity: 1, duration: 0.3, stagger: 0.1 }, "+=1")
+            .to(granulesToAnimate, { scale: 1, opacity: 1, duration: 0.3, stagger: 0.1 }, "+=0.5")
             .to(granuleAdp, { x: primaryPltX + 190, y: sHeight - 320, opacity: 0.9, duration: 0.8, ease: "power1.out" }, "-=0.2")
-            .to(granuleTxa2, { x: primaryPltX + 280, y: sHeight - 300, opacity: 0.9, duration: 0.8, ease: "power1.out" }, "-=0.7")
-            .to(granuleVwf, { x: primaryPltX + 360, y: sHeight - 250, opacity: 0.9, duration: 0.8, ease: "power1.out" }, "-=0.7");
+            .to(granuleTxa2, { x: primaryPltX + 280, y: sHeight - 300, opacity: 0.9, duration: 0.8, ease: "power1.out" }, "-=0.7");
 
-        // 在脱颗粒释放介质动画结束后，secVwf 显现，随后副血小板降落粘附
-        tl.to(secVwfEls, { opacity: 0.85, duration: 0.4, stagger: 0.1 }, "+=0.2");
+        if (!isVwd && granuleVwf) {
+            tl.to(granuleVwf, { x: primaryPltX + 360, y: sHeight - 250, opacity: 0.9, duration: 0.8, ease: "power1.out" }, "-=0.7");
+            tl.to(secVwfEls, { opacity: 0.85, duration: 0.4, stagger: 0.1 }, "+=0.2");
+        }
 
+        // 副血小板飞入（vWD 状态下增加飞入动作时间，且落点右移远离主血小板）
+        const flyDuration = isVwd ? 0.9 : 0.4;
         secPltConfig.forEach(({ el: secPlt, cfg }, idx) => {
             tl.to(secPlt, {
-                y: sHeight - 240,
+                y: isVwd ? 360 : sHeight - 240,
                 x: cfg.pltX,
-                scale: cfg.scale,
+                scale: isVwd ? cfg.scale * 0.85 : cfg.scale,
                 rotation: cfg.rot,
-                duration: 0.4,
-                ease: "power2.out"
-            }, idx === 0 ? "-=0.2" : "-=0.35");
+                duration: flyDuration,
+                ease: isVwd ? "power1.out" : "power2.out"
+            }, idx === 0 ? "+=0.2" : (isVwd ? "-=0.6" : "-=0.35"));
         });
+
+        if (isVwd) {
+            tl.call(() => {
+                triggerPathologyAlert("初级止血失败：缺乏 vWF，血小板无法有效粘附至暴露的胶原。");
+            });
+        }
     }
+
+
 
     else if (state.stage === 3) {
         // --- 3: 起始阶段 (Initiation) ---
@@ -659,10 +821,15 @@ function createFactorElement(className, text, initialPos) {
 
 // 辅助函数：触发病理警告
 function triggerPathologyAlert(message) {
+    state.hasAlertTriggered = true;
     elements.alertBox.innerText = message;
     elements.alertBox.style.display = 'block';
     elements.mechanismText.innerText = "生理过程已中断。";
+    if (currentTimeline) {
+        currentTimeline.timeScale(3); // 弹出 alertBox 时即刻加速当前阶段动画
+    }
 }
+
 
 // 初始化 UI 并安排 1 秒后自动进入 Stage 1
 updateUI();

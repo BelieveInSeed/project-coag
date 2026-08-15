@@ -298,4 +298,114 @@ select {
     stroke-width: 2.5px;
     stroke-linecap: round;
     filter: drop-shadow(0 0 5px #bdc3c7);
+}
+
+/* 侧边栏图例面板样式 */
+.legend-panel {
+    margin-top: 20px;
+    background: #2a2a35;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #3d3d4e;
+}
+
+.legend-panel h3 {
+    font-size: 0.95rem;
+    color: #4da8da;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #3d3d4e;
+    padding-bottom: 6px;
+}
+
+.legend-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.legend-empty {
+    font-size: 0.85rem;
+    color: #888;
+    font-style: italic;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 0.3s ease;
+}
+
+.legend-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.legend-graphic {
+    width: 42px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.legend-vwf {
+    background: radial-gradient(circle at 30% 30%, #9b59b6, #8e44ad);
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.legend-platelet {
+    background: radial-gradient(circle at 30% 30%, #ff9f43, #d35400);
+    border-radius: 50%;
+    width: 42px;
+    height: 21px;
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.legend-tf {
+    background: #8e44ad;
+    border-radius: 3px;
+    border-bottom: 2px solid #000;
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+    height: 22px;
+}
+
+.legend-svg {
+    width: 42px;
+    height: 24px;
+    overflow: visible;
+}
+
+.legend-label {
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: #e0e0e0;
+}
+
+/* 暂停指示器 */
+.pause-indicator {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #f39c12;
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+    border: 1px solid #f39c12;
+    box-shadow: 0 0 12px rgba(243, 156, 18, 0.5);
+    z-index: 100;
+    pointer-events: none;
+    display: none;
 }
