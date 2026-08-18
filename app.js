@@ -167,7 +167,7 @@ function handleBackwardStep(targetStage) {
     });
 
     if ((state.condition === 'vwd' && targetStage < 2) ||
-        (state.condition === 'vit_k' && targetStage < 3) ||
+        (state.condition === 'vit_k' && targetStage < 5) ||
         (state.condition === 'hemophilia_a' && targetStage < 5)) {
         state.hasAlertTriggered = false;
         elements.alertBox.style.display = 'none';
@@ -503,21 +503,20 @@ function playAnimationForCurrentStage() {
             });
         }
 
-        if (state.condition === 'vit_k') {
-            state.isAnimating = false;
-            state.queuedNext = false;
-            triggerPathologyAlert("起始失败：维生素K拮抗剂中毒。缺乏 γ-羧化，因子 VII、IX、X、II 无法结合至细胞表面的磷脂膜。外源性途径中断，PT 延长。");
-            // 视觉表现：生成灰色的因子，并在半空中停滞
-            createFactorElement('f-vii inactive', 'FVII', { x: sWidth * 0.48, y: 135 });
-            return;
-        }
-
         const tfX = sWidth * 0.60;
         const appearX = sWidth * 0.48;
 
         // 1. 暴露组织因子 (TF)
         const tf = createFactorElement('f-tf', 'TF', { x: tfX, y: 80 });
         gsap.set(tf, { backgroundColor: '#8e44ad', borderRadius: '5px' });
+
+        if (state.condition === 'vit_k') {
+            // 维生素K拮抗剂中毒：F7以灰色状态出现，之后的动画由于与F7有关，此处不执行
+            const f7Inactive = createFactorElement('f-vii inactive', 'VII', { x: sWidth * 0.70, y: 150 });
+            gsap.set(f7Inactive, { opacity: 0 });
+            tl.to(f7Inactive, { opacity: 1, duration: 0.6 }, "+=0.5");
+            return;
+        }
 
         // 2. FVII 出现并与 TF 结合
         const f7 = createFactorElement('f-vii', 'VIIa', { x: sWidth * 0.70, y: 150 });
@@ -545,7 +544,6 @@ function playAnimationForCurrentStage() {
 
     else if (state.stage === 4) {
         // --- 4: 放大阶段 (Amplification) ---
-        const microThrombin = document.querySelector('.f-ii'); // 获取上一阶段产生的 FIIa
         const platelet = document.querySelector('.platelet.primary-platelet') || document.querySelector('.platelet');
 
         if (!platelet) {
@@ -556,6 +554,32 @@ function playAnimationForCurrentStage() {
 
         const pltX = gsap.getProperty(platelet, "x");
         const pltY = gsap.getProperty(platelet, "y");
+        const midLeftX = pltX - 100;
+        const midLeftY = sHeight * 0.42;
+        const alignX = midLeftX - 160;
+
+        if (state.condition === 'vit_k') {
+            // 维生素K拮抗剂中毒：无需执行 FIIa 活化血小板/纤维蛋白原与 TFPI 动画
+            // 在 (midLeftX, midLeftY) 生成 F12，此处只显示 f11，f8a 和 f5a 出现在结束位置
+            const f12 = createFactorElement('f-xii', 'XIIa', { x: midLeftX, y: midLeftY });
+            const f11 = createFactorElement('f-xi', 'XI', { x: alignX, y: midLeftY - 60 });
+            const f8a = createFactorElement('f-viii', 'VIIIa', { x: midLeftX + 210, y: midLeftY + 60 });
+            const f5a = createFactorElement('f-v', 'Va', { x: midLeftX + 320, y: midLeftY + 60 });
+
+            gsap.set(f8a, { backgroundColor: '#e67e22' });
+            gsap.set(f5a, { backgroundColor: '#c0392b' });
+            gsap.set([f12, f11, f8a, f5a], { opacity: 0 });
+
+            // F12、F11 显现，F8a 和 F5a 直接在结束位置显现
+            tl.to([f12, f11, f8a, f5a], { opacity: 1, duration: 0.5 }, "+=0.3")
+                // FXI 靠近 FXII 活化为 FXIa，并移动到主血小板表面
+                .to(f11, { x: midLeftX, y: midLeftY + 40, duration: 0.8 }, "+=1.0")
+                .to(f11, { textContent: 'XIa', backgroundColor: '#16a085', duration: 0.3 })
+                .to(f11, { x: pltX + 10, y: pltY - 50, duration: 0.8 });
+            return;
+        }
+
+        const microThrombin = document.querySelector('.f-ii'); // 获取上一阶段产生的 FIIa
 
         // 1. 第一代凝血酶 (FIIa) 移动到主血小板上，通过 PAR 受体活化血小板
         tl.to(microThrombin, { x: pltX - 100, y: pltY + 45, duration: 1 })
@@ -584,10 +608,6 @@ function playAnimationForCurrentStage() {
 
 
         // 2. 从 Stage 3 FIIa 结束位置生成新的 FIIa，飞向舞台中间左侧
-        const midLeftX = pltX - 100;
-        const midLeftY = sHeight * 0.42;
-        const alignX = midLeftX - 160;
-
         const secondFIIa = createFactorElement('f-ii stage4-fiia', 'IIa', { x: stage3FIIaX, y: stage3FIIaY });
         gsap.set(secondFIIa, { scale: 0.8, backgroundColor: '#27ae60' });
 
@@ -673,6 +693,96 @@ function playAnimationForCurrentStage() {
         const platelet = document.querySelector('.platelet.primary-platelet') || document.querySelector('.platelet');
         const pX = platelet ? gsap.getProperty(platelet, "x") : window.innerWidth * 0.4;
         const pY = platelet ? gsap.getProperty(platelet, "y") : window.innerHeight - 350;
+        const midLeftX = pX - 100;
+        const midLeftY = sHeight * 0.42;
+        const alignX = midLeftX - 160;
+
+        if (state.condition === 'vit_k') {
+            // 维生素K拮抗剂中毒：
+            // 1. 生成 FIX 移动到 fXIa 右边，活化成 FIXa
+            const f9 = createFactorElement('f-ix', 'IX', { x: pX - 80, y: pY - 140 });
+            gsap.set(f9, { opacity: 0 });
+
+            tl.to(f9, { opacity: 1, duration: 0.4 }, "+=0.2")
+                .to(f9, { x: pX + 90, y: pY - 60, duration: 0.8 })
+                .to(f9, { textContent: 'IXa', backgroundColor: '#16a085', duration: 0.3 });
+
+            // 2. fVIIIa 移动到 FIXa 组成 Tenase (IXa/VIIIa)
+            const f8a = Array.from(document.querySelectorAll('.f-viii')).find(el => el.innerText === 'VIIIa') || document.querySelector('.f-viii');
+            if (f8a) {
+                tl.to(f8a, { x: pX + 90, y: pY - 60, duration: 0.8 }, "+=0.3")
+                    .to(f9, { textContent: 'IXa/VIIIa', backgroundColor: '#8e44ad', width: 125, borderRadius: '25px', duration: 0.3 })
+                    .to(f8a, { opacity: 0, scale: 0, duration: 0.3, onComplete: () => f8a.remove() }, "-=0.3");
+            }
+
+            // 3. 生成 fX 移动到 IXa/VIIIa 右边，活化成 fXa
+            const f10 = createFactorElement('f-x', 'X', { x: pX + 140, y: pY - 140 });
+            gsap.set(f10, { opacity: 0 });
+
+            tl.to(f10, { opacity: 1, duration: 0.4 }, "+=0.3")
+                .to(f10, { x: pX + 210, y: pY - 60, duration: 0.8 })
+                .to(f10, { textContent: 'Xa', backgroundColor: '#d35400', duration: 0.3 });
+
+            // 4. fVa 移动到 fXa 组成 Prothrombinase (Xa/Va)
+            const fVa = Array.from(document.querySelectorAll('.f-v')).find(el => el.innerText === 'Va') || document.querySelector('.f-v');
+            if (fVa) {
+                tl.to(fVa, { x: pX + 210, y: pY - 60, duration: 0.8 }, "+=0.3")
+                    .to(f10, { textContent: 'Xa/Va', backgroundColor: '#e67e22', width: 110, borderRadius: '25px', duration: 0.3 })
+                    .to(fVa, { opacity: 0, scale: 0, duration: 0.3, onComplete: () => fVa.remove() }, "-=0.3");
+            }
+
+            // 5. 凝血酶不能大爆发只能小爆发，生成的纤维蛋白丝减少
+            tl.call(() => triggerThrombinBurst(pX + 235, pY - 60, true), null, "+=0.4")
+                .call(() => createFibrinMesh(pX, pY, true), null, "+=1.2")
+                .to({}, { duration: 2.2 }); // 停留观察小爆发与少量纤维蛋白网
+
+            // 6. 额外动画：等待一小段时间后，画面退回到生成 F12 时的状态
+            tl.call(() => {
+                const strands = document.querySelectorAll('.fibrin-strand, .fibrinogen-strand');
+                gsap.to(strands, { opacity: 0, duration: 0.6, onComplete: () => strands.forEach(s => s.remove()) });
+                const factorsToClear = document.querySelectorAll('.f-xii, .f-xi, .f-viii, .f-v, .f-ix, .f-x, .f-ii');
+                gsap.to(factorsToClear, { opacity: 0, scale: 0.5, duration: 0.6, onComplete: () => factorsToClear.forEach(f => f.remove()) });
+            })
+                .to({}, { duration: 2.0 });
+
+            // 7. 动画继续：重新生成 F12，f11 正常显现并活化为 FXIa 移至血小板，f8a 和 f5a 出现在结束位置，并弹出病理警告
+            tl.call(() => {
+                triggerPathologyAlert("病理机制：维生素K拮抗剂中毒。缺乏 γ-羧化，凝血因子 II、VII、IX、X 均无法在细胞膜负电磷脂表面组装催化复合体（Gla结构域缺失）。外源性与内源性途径均阻断，凝血酶生成严重受损导致大出血，PT 与 APTT 均显著延长。");
+
+                const f12_replay = createFactorElement('f-xii', 'XIIa', { x: midLeftX, y: midLeftY });
+                const f11_replay = createFactorElement('f-xi', 'XI', { x: alignX, y: midLeftY - 60 });
+                const f8a_replay = createFactorElement('f-viii', 'VIIIa', { x: midLeftX + 210, y: midLeftY });
+                const f5a_replay = createFactorElement('f-v', 'Va', { x: midLeftX + 320, y: midLeftY });
+
+                gsap.set(f8a_replay, { backgroundColor: '#e67e22' });
+                gsap.set(f5a_replay, { backgroundColor: '#c0392b' });
+                gsap.set([f12_replay, f11_replay, f8a_replay, f5a_replay], { opacity: 0 });
+
+                gsap.timeline()
+                    .to([f12_replay, f11_replay, f8a_replay, f5a_replay], { opacity: 1, duration: 0.6 })
+                    .to(f11_replay, { x: midLeftX, y: midLeftY + 40, duration: 0.8 }, "+=0.5")
+                    .to(f11_replay, { textContent: 'XIa', backgroundColor: '#16a085', duration: 0.3 })
+                    .to(f11_replay, { x: pX + 10, y: pY - 50, duration: 0.8 });
+            }, null, "+=1.0")
+
+            // 8. f9 出现时变成灰色，活化动画取消
+            tl.call(() => {
+                const f9_replay = createFactorElement('f-ix inactive', 'IX', { x: pX - 80, y: pY - 140 });
+                gsap.set(f9_replay, { opacity: 0, scale: 0.8 });
+                gsap.to(f9_replay, { opacity: 1, scale: 1, duration: 0.6 });
+            }, null, "+=0.6")
+                .to({}, { duration: 1.0 });
+
+            // 9. f10 出现时变成灰色，之后不继续后续动画
+            tl.call(() => {
+                const f10_replay = createFactorElement('f-x inactive', 'X', { x: pX + 140, y: pY - 140 });
+                gsap.set(f10_replay, { opacity: 0, scale: 0.8 });
+                gsap.to(f10_replay, { opacity: 1, scale: 1, duration: 0.6 });
+            }, null, "+=0.6")
+                .to({}, { duration: 1.5 });
+
+            return;
+        }
 
         // 1. 生成 FIX 移动到 fXIa 右边，活化成 FIXa
         const f9 = createFactorElement('f-ix', 'IX', { x: pX - 80, y: pY - 140 });
@@ -716,15 +826,15 @@ function playAnimationForCurrentStage() {
 
 // --- 视觉特效辅助函数 ---
 
-// 凝血酶爆发特效 (多波次持续喷涌爆发)
-function triggerThrombinBurst(x, y) {
-    const burstCount = 35; // 增加粒子数量与持续释放波次 (共 35 个 IIa 粒子持续喷涌)
+// 凝血酶爆发特效 (多波次持续喷涌爆发，isSmall 为 true 时为小爆发)
+function triggerThrombinBurst(x, y, isSmall = false) {
+    const burstCount = isSmall ? 12 : 35; // 增加粒子数量与持续释放波次 (共 35 个 IIa 粒子持续喷涌，小爆发时为 12 个)
     for (let i = 0; i < burstCount; i++) {
         const burstFIIa = createFactorElement('f-ii burst', 'IIa', { x: x, y: y });
-        const delay = Math.random() * 1.6; // 错落有致的分批爆发，拉长喷涌时间
+        const delay = Math.random() * (isSmall ? 0.9 : 1.6); // 错落有致的分批爆发，拉长喷涌时间
         gsap.set(burstFIIa, {
             backgroundColor: '#2ecc71',
-            scale: 0.4,
+            scale: isSmall ? 0.35 : 0.4,
             opacity: 0,
             zIndex: 8
         });
@@ -732,17 +842,17 @@ function triggerThrombinBurst(x, y) {
         // 快速显现后向四周喷射弥散
         gsap.to(burstFIIa, {
             opacity: 1,
-            scale: 0.8 + Math.random() * 0.4,
+            scale: (isSmall ? 0.6 : 0.8) + Math.random() * (isSmall ? 0.25 : 0.4),
             duration: 0.25,
             delay: delay
         });
 
         gsap.to(burstFIIa, {
-            x: x + (Math.random() - 0.45) * 360,
-            y: y - Math.random() * 240 - 60,
+            x: x + (Math.random() - 0.45) * (isSmall ? 180 : 360),
+            y: y - Math.random() * (isSmall ? 120 : 240) - (isSmall ? 25 : 60),
             opacity: 0,
-            scale: 1.4 + Math.random() * 0.4,
-            duration: 2.2 + Math.random() * 1.2,
+            scale: (isSmall ? 0.9 : 1.4) + Math.random() * 0.4,
+            duration: (isSmall ? 1.5 : 2.2) + Math.random() * (isSmall ? 0.6 : 1.2),
             delay: delay + 0.15,
             ease: "power2.out",
             onComplete: () => burstFIIa.remove() // 动画结束后清理 DOM
@@ -816,30 +926,30 @@ function createFibrinogenStrands(pltX, pltY) {
 // 保存当前阶段生成的纤维蛋白丝几何数据，用于后续因子 XIII 的交联与收拢动画
 let activeFibrinStrands = [];
 
-// 形成纤维蛋白网特效
-function createFibrinMesh(pX, pY) {
+// 形成纤维蛋白网特效 (isReduced 为 true 时生成的纤维蛋白丝减少且长度缩短)
+function createFibrinMesh(pX, pY, isReduced = false) {
     const svg = getOrCreateFibrinSVG();
     activeFibrinStrands = [];
 
-    // 生成新的交错纤维蛋白丝：方向大致为左右向，Y坐标与 fibrinogen 所在区间 (pY + 80 ~ pY + 185) 一致，长度和数量增加
+    // 生成新的交错纤维蛋白丝：方向大致为左右向，Y坐标与 fibrinogen 所在区间 (pY + 80 ~ pY + 185) 一致
     const { width: sWidth } = getStageDimensions();
     const minX = pX - 40;
     const maxX = sWidth * 0.88;
     const minY = pY + 80;
     const maxY = pY + 185;
 
-    const threadCount = 45; // 增加数量
+    const threadCount = isReduced ? 12 : 45; // 减少或正常数量
     for (let i = 0; i < threadCount; i++) {
-        const x1 = minX + Math.random() * (maxX - minX - 100);
+        const x1 = minX + Math.random() * (maxX - minX - (isReduced ? 180 : 100));
         const y1 = minY + Math.random() * (maxY - minY);
 
         // 方向大致为左右向 (倾角限制在 -25° 到 +25° 之间)
         const angle = (Math.random() * 50 - 25) * (Math.PI / 180);
-        const len = 160 + Math.random() * 160; // 增加长度
+        const len = (isReduced ? 90 : 160) + Math.random() * (isReduced ? 70 : 160);
         const x2 = x1 + Math.cos(angle) * len;
         const y2 = y1 + Math.sin(angle) * len;
 
-        const amp = (16 + Math.random() * 22) * (i % 2 === 0 ? 1 : -1);
+        const amp = ((isReduced ? 10 : 16) + Math.random() * (isReduced ? 12 : 22)) * (i % 2 === 0 ? 1 : -1);
 
         const d = generateTildePath(x1, y1, x2, y2, amp);
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
