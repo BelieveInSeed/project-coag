@@ -110,6 +110,7 @@ select {
 
 .collagen-layer.top {
     top: 0px;
+    width: 45%;
 }
 
 .factor {
@@ -189,6 +190,10 @@ select {
 
 .f-xiii {
     background: radial-gradient(circle at 30% 30%, #1abc9c, #16a085);
+}
+
+.f-tfpi {
+    background: radial-gradient(circle at 30% 30%, #e74c3c, #c0392b);
 }
 
 /* 脱颗粒释放介质 (ADP, TxA2, vWF) 及因子 XIII 颗粒 */
@@ -390,6 +395,15 @@ select {
     height: 22px;
 }
 
+.legend-tfpi {
+    background: radial-gradient(circle at 30% 30%, #e74c3c, #c0392b);
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
+}
+
 .legend-svg {
     width: 42px;
     height: 24px;
@@ -418,4 +432,4 @@ select {
     z-index: 100;
     pointer-events: none;
     display: none;
-}
+}

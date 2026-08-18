@@ -243,6 +243,7 @@ const legendData = [
     { key: 'vwf', stages: [2, 3, 4, 5], label: '血管因子 (vWF)' },
     { key: 'platelet', stages: [2, 3, 4, 5], label: '血小板 (Platelet)' },
     { key: 'tf', stages: [3, 4, 5], label: '组织因子 (TF, FIII)' },
+    { key: 'tfpi', stages: [4, 5], label: '组织因子途径抑制物 (TFPI)' },
     { key: 'fibrinogen', stages: [4, 5], label: '纤维蛋白原 (Fibrinogen, FI)' },
     { key: 'fibrin', stages: [4, 5], label: '纤维蛋白丝 (Fibrin, FIa)' }
 ];
@@ -277,6 +278,8 @@ function updateLegend() {
             graphicHTML = `<div class="legend-graphic legend-platelet"></div>`;
         } else if (item.key === 'tf') {
             graphicHTML = `<div class="legend-graphic legend-tf">TF</div>`;
+        } else if (item.key === 'tfpi') {
+            graphicHTML = `<div class="legend-graphic legend-tfpi">TFPI</div>`;
         } else if (item.key === 'fibrinogen') {
             graphicHTML = `
                 <svg class="legend-graphic legend-svg" viewBox="0 0 40 20">
@@ -517,7 +520,7 @@ function playAnimationForCurrentStage() {
         gsap.set(tf, { backgroundColor: '#8e44ad', borderRadius: '5px' });
 
         // 2. FVII 出现并与 TF 结合
-        const f7 = createFactorElement('f-vii', 'VII', { x: sWidth * 0.70, y: 150 });
+        const f7 = createFactorElement('f-vii', 'VIIa', { x: sWidth * 0.70, y: 150 });
 
         // 3. 活化 FX 和 FIX，产生微量凝血酶 (Thrombin/FIIa)
         // 由上而下依次排列：FX (y: 160), FVa (y: 220), FII (y: 280)
@@ -530,7 +533,6 @@ function playAnimationForCurrentStage() {
         gsap.set(fv, { backgroundColor: '#c0392b' });
 
         tl.to(f7, { x: tfX, y: 120, duration: 1 }, "+=1.5") // FVII 靠近并结合 TF
-            .to(f7, { textContent: 'VIIa', backgroundColor: '#2980b9', duration: 0.2 }) // 活化为 FVIIa
             .to([fx, fv, fii], { opacity: 1, duration: 0.4, stagger: 0.1 }, "+=1") // FX, FVa, FII 依序由上而下显现
             .to(fx, { x: tfX * 0.95, duration: 1 }, "+=1") // FX 靠近复合物
             .to(fx, { textContent: 'Xa', backgroundColor: '#d35400', duration: 0.2 }) // FX 活化为 FXa
@@ -590,6 +592,17 @@ function playAnimationForCurrentStage() {
         gsap.set(secondFIIa, { scale: 0.8, backgroundColor: '#27ae60' });
 
         tl.to(secondFIIa, { x: midLeftX, y: midLeftY, duration: 1 }, "+=0.5");
+
+        // 2.5 组织因子途径抑制物 (TFPI) 出现并移动到 FVIIa 右边
+        const tfpi = createFactorElement('f-tfpi', 'TFPI', { x: sWidth * 0.75, y: 80 });
+        gsap.set(tfpi, { opacity: 0 });
+
+        const f7El = document.querySelector('.f-vii');
+        const f7X = f7El ? gsap.getProperty(f7El, "x") : sWidth * 0.60;
+        const f7Y = f7El ? gsap.getProperty(f7El, "y") : 120;
+
+        tl.to(tfpi, { opacity: 1, duration: 0.4 }, "+=0.2")
+            .to(tfpi, { x: f7X + 105, y: f7Y, duration: 0.8, ease: "power1.out" });
 
         // 3. f11, [f8, vwfBound], f5 垂直对齐 (x: alignX) 并同时显现：
         const f11 = createFactorElement('f-xi', 'XI', { x: alignX, y: midLeftY - 60 });
@@ -681,7 +694,7 @@ function playAnimationForCurrentStage() {
 
         // 5. 凝血酶在 Xa/Va 右边爆发，随后形成纤维蛋白网与因子 XIII 稳定收拢
         tl.call(() => triggerThrombinBurst(pX + 235, pY - 60), null, "+=0.5")
-            .call(() => createFibrinMesh(pX, pY), null, "+=1.2")
+            .call(() => createFibrinMesh(pX, pY), null, "+=2.0")
             .call(() => triggerFactorXIIICrosslinking(pX, pY), null, "+=1.8")
             .to({}, { duration: 2.5 });
     }
@@ -689,20 +702,35 @@ function playAnimationForCurrentStage() {
 
 // --- 视觉特效辅助函数 ---
 
-// 凝血酶爆发特效
+// 凝血酶爆发特效 (多波次持续喷涌爆发)
 function triggerThrombinBurst(x, y) {
-    for (let i = 0; i < 15; i++) {
+    const burstCount = 35; // 增加粒子数量与持续释放波次 (共 35 个 IIa 粒子持续喷涌)
+    for (let i = 0; i < burstCount; i++) {
         const burstFIIa = createFactorElement('f-ii burst', 'IIa', { x: x, y: y });
-        gsap.set(burstFIIa, { backgroundColor: '#2ecc71', scale: 0.5 });
-
-        // 向四周散射的动画
-        gsap.to(burstFIIa, {
-            x: x + (Math.random() - 0.5) * 300,
-            y: y - Math.random() * 200 - 50,
+        const delay = Math.random() * 1.6; // 错落有致的分批爆发，拉长喷涌时间
+        gsap.set(burstFIIa, {
+            backgroundColor: '#2ecc71',
+            scale: 0.4,
             opacity: 0,
-            scale: 1.5,
-            duration: 1.5 + Math.random(),
-            ease: "power3.out",
+            zIndex: 8
+        });
+
+        // 快速显现后向四周喷射弥散
+        gsap.to(burstFIIa, {
+            opacity: 1,
+            scale: 0.8 + Math.random() * 0.4,
+            duration: 0.25,
+            delay: delay
+        });
+
+        gsap.to(burstFIIa, {
+            x: x + (Math.random() - 0.45) * 360,
+            y: y - Math.random() * 240 - 60,
+            opacity: 0,
+            scale: 1.4 + Math.random() * 0.4,
+            duration: 2.2 + Math.random() * 1.2,
+            delay: delay + 0.15,
+            ease: "power2.out",
             onComplete: () => burstFIIa.remove() // 动画结束后清理 DOM
         });
     }
