@@ -242,9 +242,9 @@ function handleBackwardStep(targetStage) {
 const legendData = [
     { key: 'vwf', stages: [2, 3, 4, 5], label: '血管因子 (vWF)' },
     { key: 'platelet', stages: [2, 3, 4, 5], label: '血小板 (Platelet)' },
-    { key: 'tf', stages: [3, 4, 5], label: '组织因子 (TF)' },
-    { key: 'fibrinogen', stages: [4, 5], label: '纤维蛋白原 (Fibrinogen)' },
-    { key: 'fibrin', stages: [4, 5], label: '纤维蛋白丝 (Fibrin)' }
+    { key: 'tf', stages: [3, 4, 5], label: '组织因子 (TF, FIII)' },
+    { key: 'fibrinogen', stages: [4, 5], label: '纤维蛋白原 (Fibrinogen, FI)' },
+    { key: 'fibrin', stages: [4, 5], label: '纤维蛋白丝 (Fibrin, FIa)' }
 ];
 
 function updateLegend() {
@@ -679,9 +679,11 @@ function playAnimationForCurrentStage() {
                 .to(fVa, { opacity: 0, scale: 0, duration: 0.3, onComplete: () => fVa.remove() }, "-=0.3");
         }
 
-        // 5. 凝血酶在 Xa/Va 右边爆发，随后形成纤维蛋白网
+        // 5. 凝血酶在 Xa/Va 右边爆发，随后形成纤维蛋白网与因子 XIII 稳定收拢
         tl.call(() => triggerThrombinBurst(pX + 235, pY - 60), null, "+=0.5")
-            .call(() => createFibrinMesh(pX, pY), null, "+=1.2");
+            .call(() => createFibrinMesh(pX, pY), null, "+=1.2")
+            .call(() => triggerFactorXIIICrosslinking(pX, pY), null, "+=1.8")
+            .to({}, { duration: 2.5 });
     }
 }
 
@@ -769,9 +771,13 @@ function createFibrinogenStrands(pltX, pltY) {
     }
 }
 
+// 保存当前阶段生成的纤维蛋白丝几何数据，用于后续因子 XIII 的交联与收拢动画
+let activeFibrinStrands = [];
+
 // 形成纤维蛋白网特效
 function createFibrinMesh(pX, pY) {
     const svg = getOrCreateFibrinSVG();
+    activeFibrinStrands = [];
 
     // 生成新的交错纤维蛋白丝：方向大致为左右向，Y坐标与 fibrinogen 所在区间 (pY + 80 ~ pY + 185) 一致，长度和数量增加
     const { width: sWidth } = getStageDimensions();
@@ -801,8 +807,112 @@ function createFibrinMesh(pX, pY) {
         path.style.opacity = '0';
         svg.appendChild(path);
 
+        // 记录纤维蛋白丝的几何参数，便于后续趋向 0 度与收拢插值
+        activeFibrinStrands.push({
+            path,
+            x1, y1,
+            x2, y2,
+            angle,
+            len,
+            amp
+        });
+
         gsap.to(path, { opacity: 1, duration: 0.5, delay: i * 0.03 });
     }
+}
+
+// 因子 XIII 出现并飞入纤维蛋白网，引发纤维蛋白网收拢（角度趋向 0 度）与交联加固
+function triggerFactorXIIICrosslinking(pX, pY) {
+    const { width: sWidth, height: sHeight } = getStageDimensions();
+    const minX = pX - 30;
+    const maxX = sWidth * 0.86;
+    const minY = pY + 85;
+    const maxY = pY + 180;
+    const centerY = pY + 132.5;
+    const centerX = (minX + maxX) / 2;
+
+    // 1. 在舞台右侧中间区域生成多个散在的因子 XIII (样式参考 granule-particle)
+    const count = 5;
+    const xiiiElements = [];
+
+    for (let i = 0; i < count; i++) {
+        // 初始位置：舞台右侧中间散开
+        const initX = sWidth - 20 + (Math.random() * 70 - 20);
+        const initY = (sHeight * 0.46) + (Math.random() * 130 - 65);
+
+        const el = createFactorElement('granule-particle granule-xiii', 'XIII', { x: initX, y: initY });
+        gsap.set(el, { opacity: 0, scale: 0.5, zIndex: 6 });
+        xiiiElements.push(el);
+
+        // 目标位置：均匀散落在纤维蛋白网区域内部
+        const targetX = minX + 50 + ((maxX - minX - 90) / (count - 1)) * i + (Math.random() * 30 - 15);
+        const targetY = minY + 15 + Math.random() * (maxY - minY - 30);
+
+        // 显现并飞入纤维蛋白网
+        gsap.to(el, { opacity: 1, scale: 1, duration: 0.4, delay: i * 0.08 });
+        gsap.to(el, {
+            x: targetX,
+            y: targetY,
+            duration: 1.1 + Math.random() * 0.3,
+            delay: 0.1 + i * 0.08,
+            ease: "power2.out"
+        });
+
+        // 进入网状结构后轻微发光，呈现活化/交联活性
+        gsap.to(el, {
+            boxShadow: '0 0 16px rgba(26, 188, 156, 0.9), inset 1px 1px 2px rgba(255, 255, 255, 0.8)',
+            duration: 0.5,
+            delay: 1.1 + i * 0.08
+        });
+    }
+
+    // 2. 纤维蛋白丝角度趋向 0 度，呈现出收拢加固的动作 (温和适度的收拢幅度)
+    // 为每根纤维蛋白丝计算收拢目标参数
+    activeFibrinStrands.forEach(s => {
+        const targetAngle = s.angle * 0.35; // 角度稍微趋向 0 度
+        const targetAmp = s.amp * 0.72;     // 波幅稍微变平紧绷
+        const targetY1 = s.y1 + (centerY - s.y1) * 0.10; // 向中轴线温和收拢
+        const targetX1 = s.x1 + (centerX - s.x1) * 0.02; // 水平轻微聚拢
+        const targetLen = s.len * 0.98;     // 纤维长度微调
+        const targetX2 = targetX1 + Math.cos(targetAngle) * targetLen;
+        const targetY2 = targetY1 + Math.sin(targetAngle) * targetLen;
+
+        s.targetX1 = targetX1;
+        s.targetY1 = targetY1;
+        s.targetX2 = targetX2;
+        s.targetY2 = targetY2;
+        s.targetAmp = targetAmp;
+    });
+
+    // 3. 伴随因子 XIII 飞入，平滑插值变形纤维蛋白丝
+    const morphObj = { progress: 0 };
+    gsap.to(morphObj, {
+        progress: 1,
+        duration: 1.4,
+        delay: 0.65,
+        ease: "power2.inOut",
+        onUpdate: () => {
+            const p = morphObj.progress;
+            activeFibrinStrands.forEach(s => {
+                const curX1 = s.x1 + (s.targetX1 - s.x1) * p;
+                const curY1 = s.y1 + (s.targetY1 - s.y1) * p;
+                const curX2 = s.x2 + (s.targetX2 - s.x2) * p;
+                const curY2 = s.y2 + (s.targetY2 - s.y2) * p;
+                const curAmp = s.amp + (s.targetAmp - s.amp) * p;
+                s.path.setAttribute('d', generateTildePath(curX1, curY1, curX2, curY2, curAmp));
+            });
+        }
+    });
+
+    // 纤维蛋白丝加固发光
+    gsap.to('.fibrin-strand', {
+        stroke: '#ffffff',
+        strokeWidth: '2.8px',
+        filter: 'drop-shadow(0 0 6px #ffffff) drop-shadow(0 0 10px rgba(26, 188, 156, 0.4))',
+        duration: 1.4,
+        delay: 0.65,
+        ease: "power2.inOut"
+    });
 }
 
 

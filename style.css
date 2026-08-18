@@ -187,7 +187,11 @@ select {
     background: radial-gradient(circle at 30% 30%, #166da0, #116078);
 }
 
-/* 脱颗粒释放介质 (ADP, TxA2, vWF) 颗粒 */
+.f-xiii {
+    background: radial-gradient(circle at 30% 30%, #1abc9c, #16a085);
+}
+
+/* 脱颗粒释放介质 (ADP, TxA2, vWF) 及因子 XIII 颗粒 */
 .granule-particle {
     width: auto !important;
     height: auto !important;
@@ -215,6 +219,12 @@ select {
 .granule-vwf {
     background: radial-gradient(circle at 30% 30%, #9b59b6, #8e44ad) !important;
     border: 1px solid #a29bfe;
+}
+
+.granule-xiii {
+    background: radial-gradient(circle at 30% 30%, #1abc9c, #16a085) !important;
+    border: 1px solid #58d68d;
+    box-shadow: 0 0 12px rgba(26, 188, 156, 0.6), inset 1px 1px 2px rgba(255, 255, 255, 0.6) !important;
 }
 
 /* 底部时间轴控制 */
