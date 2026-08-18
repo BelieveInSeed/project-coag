@@ -605,30 +605,44 @@ function playAnimationForCurrentStage() {
             .to(tfpi, { x: f7X + 105, y: f7Y, duration: 0.8, ease: "power1.out" });
 
         // 3. f11, [f8, vwfBound], f5 垂直对齐 (x: alignX) 并同时显现：
+        const isHemophiliaA = state.condition === 'hemophilia_a';
+
         const f11 = createFactorElement('f-xi', 'XI', { x: alignX, y: midLeftY - 60 });
-        const f8 = createFactorElement('f-viii', 'VIII', { x: alignX, y: midLeftY + 40 });
-        const vwfBound = createFactorElement('granule-particle granule-vwf bound-vwf', 'vWF', { x: alignX - 60, y: midLeftY + 40 });
         const f5 = createFactorElement('f-v', 'V', { x: alignX, y: midLeftY + 140 });
 
-        gsap.set([f11, f8, vwfBound, f5], { opacity: 0 });
+        let f8 = null;
+        let vwfBound = null;
+        if (!isHemophiliaA) {
+            f8 = createFactorElement('f-viii', 'VIII', { x: alignX, y: midLeftY + 40 });
+            vwfBound = createFactorElement('granule-particle granule-vwf bound-vwf', 'vWF', { x: alignX - 60, y: midLeftY + 40 });
+        }
+
+        const elementsToAppear = [f11, f5];
+        if (!isHemophiliaA) {
+            elementsToAppear.push(f8, vwfBound);
+        }
+
+        gsap.set(elementsToAppear, { opacity: 0 });
 
         // 同时显现
-        tl.to([f11, f8, vwfBound, f5], { opacity: 1, duration: 0.4 }, "+=0.3");
+        tl.to(elementsToAppear, { opacity: 1, duration: 0.4 }, "+=0.3");
 
         // (1) FXI 靠近 FIIa 活化为 FXIa，移动到主血小板表面
         tl.to(f11, { x: midLeftX, y: midLeftY + 40, duration: 0.8 }, "+=1.5")
             .to(f11, { textContent: 'XIa', backgroundColor: '#16a085', duration: 0.3 })
             .to(f11, { x: pltX + 10, y: pltY - 50, duration: 0.8 });
 
-        // (2) FVIII 和 vWF 靠近 FIIa，FVIII 活化为 FVIIIa，vWF 飞向上方胶原层
-        tl.to([f8, vwfBound], { x: (i) => i === 0 ? midLeftX : midLeftX - 60, y: midLeftY + 40, duration: 0.8 }, "+=0.2")
-            .to(f8, { textContent: 'VIIIa', backgroundColor: '#e67e22', duration: 0.3 })
-            .to(vwfBound, { x: sWidth * 0.45, y: 90, duration: 1, ease: "power1.out" }, "-=0.2")
-            .call(() => {
-                vwfBound.className = 'factor f-vwf bound-vwf';
-                gsap.set(vwfBound, { scale: 1 });
-            })
-            .to(f8, { x: midLeftX + 210, y: midLeftY + 60, duration: 0.8 }, "-=0.6");
+        // (2) FVIII 和 vWF 靠近 FIIa，FVIII 活化为 FVIIIa，vWF 飞向上方胶原层（血友病 A 时缺乏 FVIII，跳过此步骤）
+        if (!isHemophiliaA) {
+            tl.to([f8, vwfBound], { x: (i) => i === 0 ? midLeftX : midLeftX - 60, y: midLeftY + 40, duration: 0.8 }, "+=0.2")
+                .to(f8, { textContent: 'VIIIa', backgroundColor: '#e67e22', duration: 0.3 })
+                .to(vwfBound, { x: sWidth * 0.45, y: 90, duration: 1, ease: "power1.out" }, "-=0.2")
+                .call(() => {
+                    vwfBound.className = 'factor f-vwf bound-vwf';
+                    gsap.set(vwfBound, { scale: 1 });
+                })
+                .to(f8, { x: midLeftX + 210, y: midLeftY + 60, duration: 0.8 }, "-=0.6");
+        }
 
         // (3) FV 移动到 FIIa 旁，活化为 FVa
         tl.to(f5, { x: midLeftX, y: midLeftY + 40, duration: 0.8 }, "+=0.2")
@@ -652,7 +666,7 @@ function playAnimationForCurrentStage() {
         if (state.condition === 'hemophilia_a') {
             state.isAnimating = false;
             state.queuedNext = false;
-            triggerPathologyAlert("传播中止：血友病 A 缺乏因子 VIII (FVIII)。无法在血小板表面组装内源性因子X酶 (Tenase) 复合物，凝血酶爆发失败，导致严重出血。");
+            triggerPathologyAlert("传播中止：血友病 A 缺乏因子 VIII，导致无法在血小板表面组装内源性因子X酶 (Tenase) 复合物，凝血酶爆发失败，导致严重出血。");
             return;
         }
 
