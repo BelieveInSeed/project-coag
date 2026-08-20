@@ -345,8 +345,8 @@ function resetSimulation() {
 
 
 
-// 移动端固定基准画布尺寸
-const MOBILE_STAGE_CONFIG = {
+// 全局固定基准画布尺寸 (1024 × 768)
+const STAGE_CONFIG = {
     width: 1024,
     height: 768
 };
@@ -356,15 +356,9 @@ function isMobile() {
     return window.innerWidth <= 768;
 }
 
-// 辅助函数：获取动画舞台的实际或逻辑参考尺寸
+// 辅助函数：获取动画舞台的逻辑画布尺寸（始终保持 1024 × 768）
 function getStageDimensions() {
-    if (isMobile()) {
-        return { width: MOBILE_STAGE_CONFIG.width, height: MOBILE_STAGE_CONFIG.height };
-    }
-    const stageEl = document.querySelector('.animation-stage');
-    const width = stageEl ? stageEl.offsetWidth : (window.innerWidth - 320);
-    const height = stageEl ? stageEl.offsetHeight : window.innerHeight;
-    return { width, height };
+    return { width: STAGE_CONFIG.width, height: STAGE_CONFIG.height };
 }
 
 // 核心动画分发器
@@ -1107,21 +1101,23 @@ function triggerPathologyAlert(message) {
 }
 
 
-// 辅助函数：计算并设置移动端舞台的缩放比例 CSS 变量 (--stage-scale) 及切齐高度
+// 辅助函数：计算并设置舞台缩放比例 CSS 变量 (--stage-scale)
 function updateStageScale() {
     const wrapper = document.querySelector('.stage-wrapper');
+    if (!wrapper) return;
+
     if (isMobile()) {
-        if (wrapper) {
-            const containerWidth = wrapper.parentElement ? wrapper.parentElement.clientWidth : window.innerWidth;
-            const scale = containerWidth / MOBILE_STAGE_CONFIG.width;
-            document.documentElement.style.setProperty('--stage-scale', scale);
-            wrapper.style.height = `${scale * MOBILE_STAGE_CONFIG.height}px`;
-        }
+        const containerWidth = wrapper.parentElement ? wrapper.parentElement.clientWidth : window.innerWidth;
+        const scale = containerWidth / STAGE_CONFIG.width;
+        document.documentElement.style.setProperty('--stage-scale', scale);
+        wrapper.style.height = `${scale * STAGE_CONFIG.height}px`;
     } else {
-        document.documentElement.style.removeProperty('--stage-scale');
-        if (wrapper) {
-            wrapper.style.height = '';
-        }
+        // 桌面/平板宽屏模式：同时根据舞台区域可用宽高计算最佳等比缩放比例 (Contain Scale)
+        const availWidth = wrapper.clientWidth || (window.innerWidth - 320);
+        const availHeight = wrapper.clientHeight || (window.innerHeight - 80);
+        const scale = Math.min(availWidth / STAGE_CONFIG.width, availHeight / STAGE_CONFIG.height);
+        document.documentElement.style.setProperty('--stage-scale', scale);
+        wrapper.style.height = '';
     }
 }
 

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>兽医止血生理学互动模拟器</title>
-    <link rel="stylesheet" href="style.css?v=6">
+    <link rel="stylesheet" href="style.css?v=7">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 </head>
 
@@ -51,7 +51,7 @@
     </div>
 
     <footer class="timeline-controls">
-        <button id="btn-prev" disabled>◀ 上一步</button>
+        <button id="btn-prev" disabled><span class="btn-icon">◀</span><span class="btn-text"> 上一步</span></button>
         <div class="timeline">
             <div class="step" data-step="1">血管损伤</div>
             <div class="step" data-step="2">初级止血</div>
@@ -59,10 +59,10 @@
             <div class="step" data-step="4">放大阶段</div>
             <div class="step" data-step="5">传播阶段</div>
         </div>
-        <button id="btn-next">下一步 ▶</button>
+        <button id="btn-next"><span class="btn-text">下一步 </span><span class="btn-icon">▶</span></button>
     </footer>
 
-    <script src="app.js?v=6"></script>
+    <script src="app.js?v=7"></script>
 </body>
 
 </html>
