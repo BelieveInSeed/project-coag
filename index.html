@@ -3,8 +3,9 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>兽医止血生理学互动模拟器</title>
-    <link rel="stylesheet" href="style.css?v=3">
+    <link rel="stylesheet" href="style.css?v=6">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 </head>
 
@@ -31,21 +32,22 @@
             </div>
         </aside>
 
+        <div class="stage-wrapper">
+            <main class="animation-stage">
+                <div class="blood-vessel">
+                    <!-- 顶部血管壁：内皮与胶原层 -->
+                    <div class="endothelial-layer top"></div>
+                    <div class="collagen-layer top hidden"></div>
 
-        <main class="animation-stage">
-            <div class="blood-vessel">
-                <!-- 顶部血管壁：内皮与胶原层 -->
-                <div class="endothelial-layer top"></div>
-                <div class="collagen-layer top hidden"></div>
+                    <!-- 底部血管壁：内皮与胶原层 -->
+                    <div class="endothelial-layer bottom"></div>
+                    <div class="collagen-layer bottom hidden"></div>
 
-                <!-- 底部血管壁：内皮与胶原层 -->
-                <div class="endothelial-layer bottom"></div>
-                <div class="collagen-layer bottom hidden"></div>
-
-                <div id="platelets-container"></div>
-                <div id="factors-container"></div>
-            </div>
-        </main>
+                    <div id="platelets-container"></div>
+                    <div id="factors-container"></div>
+                </div>
+            </main>
+        </div>
     </div>
 
     <footer class="timeline-controls">
@@ -60,7 +62,7 @@
         <button id="btn-next">下一步 ▶</button>
     </footer>
 
-    <script src="app.js?v=3"></script>
+    <script src="app.js?v=6"></script>
 </body>
 
 </html>

@@ -61,9 +61,20 @@ select {
     display: none;
 }
 
+/* 舞台外层包裹器 */
+.stage-wrapper {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+}
+
 /* 舞台：伪 3D 血管腔 */
 .animation-stage {
     flex: 1;
+    width: 100%;
+    height: 100%;
     position: relative;
     /* 模拟血液背景的纵深感 */
     background: radial-gradient(circle at center, #6b0f1a 0%, #200000 100%);
@@ -436,4 +447,155 @@ select {
     z-index: 100;
     pointer-events: none;
     display: none;
+}
+
+/* ====================================================
+   移动端响应式适配 (≤ 768px)：上下分屏 + 视口比例缩放
+   ==================================================== */
+@media (max-width: 768px) {
+    body {
+        height: 100dvh;
+        overflow: hidden;
+    }
+
+    /* 整体布局：上下排列，允许主内容区纵向滚动查看完整文字/图例 */
+    .simulator-container {
+        flex-direction: column;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* 上半部分：动画舞台外层包裹器，高度严格计算切齐缩放后的舞台 (500px * scale) */
+    .stage-wrapper {
+        width: 100%;
+        height: calc(768px * var(--stage-scale, 0.375));
+        max-height: calc(768px * var(--stage-scale, 0.375));
+        flex: 0 0 auto;
+        position: relative;
+        overflow: hidden;
+        order: 1;
+        background: #121212;
+    }
+
+    /* 动画舞台：逻辑尺寸固定 1000px × 500px，利用 CSS transform scale 等比自适应缩放 */
+    .animation-stage {
+        width: 1024px !important;
+        height: 768px !important;
+        position: absolute;
+        top: 0;
+        left: 0;
+        transform: scale(var(--stage-scale, 0.375));
+        transform-origin: top left;
+        flex: none;
+    }
+
+    /* 下半部分：控制与说明面板，位于舞台下方常显（无需折叠） */
+    .control-panel {
+        width: 100%;
+        border-right: none;
+        border-top: 2px solid #333;
+        padding: 14px;
+        order: 2;
+        overflow-y: visible;
+        flex: 1 0 auto;
+    }
+
+    .control-panel h2 {
+        font-size: 1.05rem;
+        margin-bottom: 10px;
+    }
+
+    .control-panel select {
+        padding: 8px 10px;
+        margin-bottom: 12px;
+        font-size: 0.9rem;
+    }
+
+    .info-card {
+        padding: 12px;
+        font-size: 0.9rem;
+        margin-bottom: 12px;
+    }
+
+    .info-card h3 {
+        font-size: 0.95rem;
+        margin-bottom: 6px;
+    }
+
+    .alert-box {
+        padding: 10px 12px;
+        font-size: 0.88rem;
+        margin-top: 10px;
+    }
+
+    .legend-panel {
+        margin-top: 12px;
+        padding: 12px;
+    }
+
+    .legend-panel h3 {
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+    }
+
+    /* 移动端图例横向流动排列，提高空间利用率 */
+    .legend-items {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .legend-item {
+        flex: 1 1 calc(50% - 6px);
+        min-width: 135px;
+        padding: 5px 8px;
+    }
+
+    .legend-graphic {
+        width: 36px;
+        height: 20px;
+    }
+
+    .legend-label {
+        font-size: 0.8rem;
+    }
+
+    /* 底部时间轴控制栏 */
+    .timeline-controls {
+        height: auto;
+        min-height: 54px;
+        padding: 6px 10px;
+        flex-shrink: 0;
+        z-index: 20;
+    }
+
+    .timeline-controls button {
+        padding: 8px 14px;
+        font-size: 0.82rem;
+        flex-shrink: 0;
+    }
+
+    .timeline {
+        margin: 0 8px;
+        gap: 2px;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .timeline::-webkit-scrollbar {
+        display: none;
+    }
+
+    .step {
+        padding: 4px 6px;
+        font-size: 0.72rem;
+        white-space: nowrap;
+    }
+
+    .pause-indicator {
+        top: 15px;
+        right: 15px;
+        font-size: 13px;
+        padding: 6px 14px;
+    }
 }

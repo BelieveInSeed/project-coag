@@ -345,8 +345,22 @@ function resetSimulation() {
 
 
 
-// 辅助函数：获取动画舞台的实际尺寸
+// 移动端固定基准画布尺寸
+const MOBILE_STAGE_CONFIG = {
+    width: 1024,
+    height: 768
+};
+
+// 辅助函数：判断是否为移动端
+function isMobile() {
+    return window.innerWidth <= 768;
+}
+
+// 辅助函数：获取动画舞台的实际或逻辑参考尺寸
 function getStageDimensions() {
+    if (isMobile()) {
+        return { width: MOBILE_STAGE_CONFIG.width, height: MOBILE_STAGE_CONFIG.height };
+    }
     const stageEl = document.querySelector('.animation-stage');
     const width = stageEl ? stageEl.offsetWidth : (window.innerWidth - 320);
     const height = stageEl ? stageEl.offsetHeight : window.innerHeight;
@@ -1093,6 +1107,87 @@ function triggerPathologyAlert(message) {
 }
 
 
-// 初始化 UI 并安排 1 秒后自动进入 Stage 1
+// 辅助函数：计算并设置移动端舞台的缩放比例 CSS 变量 (--stage-scale) 及切齐高度
+function updateStageScale() {
+    const wrapper = document.querySelector('.stage-wrapper');
+    if (isMobile()) {
+        if (wrapper) {
+            const containerWidth = wrapper.parentElement ? wrapper.parentElement.clientWidth : window.innerWidth;
+            const scale = containerWidth / MOBILE_STAGE_CONFIG.width;
+            document.documentElement.style.setProperty('--stage-scale', scale);
+            wrapper.style.height = `${scale * MOBILE_STAGE_CONFIG.height}px`;
+        }
+    } else {
+        document.documentElement.style.removeProperty('--stage-scale');
+        if (wrapper) {
+            wrapper.style.height = '';
+        }
+    }
+}
+
+// 移动端手势支持（左右滑动切换步骤，双击切换暂停）
+let touchStartX = 0;
+let touchStartY = 0;
+let touchStartTime = 0;
+let lastTapTime = 0;
+
+function initTouchGestures() {
+    const stageWrapper = document.querySelector('.stage-wrapper') || document.querySelector('.animation-stage');
+    if (!stageWrapper) return;
+
+    stageWrapper.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            touchStartTime = Date.now();
+        }
+    }, { passive: true });
+
+    stageWrapper.addEventListener('touchend', (e) => {
+        if (e.changedTouches.length === 1) {
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            const diffX = touchEndX - touchStartX;
+            const diffY = touchEndY - touchStartY;
+            const duration = Date.now() - touchStartTime;
+
+            // 双击判定 (< 300ms 且位移极小)
+            const currentTime = Date.now();
+            const tapDuration = currentTime - lastTapTime;
+            if (tapDuration < 300 && Math.abs(diffX) < 15 && Math.abs(diffY) < 15) {
+                togglePause();
+                lastTapTime = 0;
+                return;
+            }
+            lastTapTime = currentTime;
+
+            // 滑动手势判定 (水平距离 > 45px，且水平偏移大于垂直偏移，时间 < 500ms)
+            if (duration < 500 && Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
+                if (diffX < 0) {
+                    // 向左滑 -> 下一步
+                    if (!elements.btnNext.disabled) {
+                        changeStage(1);
+                    }
+                } else {
+                    // 向右滑 -> 上一步
+                    if (!elements.btnPrev.disabled) {
+                        changeStage(-1);
+                    }
+                }
+            }
+        }
+    }, { passive: true });
+}
+
+window.addEventListener('resize', () => {
+    updateStageScale();
+});
+window.addEventListener('orientationchange', () => {
+    setTimeout(updateStageScale, 100);
+});
+
+// 初始化 UI、手势及缩放计算，并安排 1 秒后自动进入 Stage 1
+updateStageScale();
+initTouchGestures();
 updateUI();
 scheduleAutoAdvance();
